@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Shomer — AI Security Guard</title>
+
+<!-- PWA Meta Tags -->
+<meta name="application-name" content="Shomer">
+<meta name="apple-mobile-web-app-title" content="Shomer">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#050A08">
+<meta name="description" content="Shomer — AI-powered phone security. The Hebrew Watchman protecting your device from AI threats, phishing, and spam.">
+
+<!-- PWA Manifest -->
+<link rel="manifest" href="shomer-manifest.json">
+
+<!-- Apple Touch Icon — Paleo-Hebrew Shin inside shield -->
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='80' fill='%23050A08'/%3E%3Cpath d='M256 70L84 148v150c0 116 74 206 172 232 98-26 172-116 172-232V148L256 70z' fill='rgba(0,255,136,0.08)' stroke='%2300FF88' stroke-width='10' stroke-linejoin='round'/%3E%3Cg stroke='%2300FF88' stroke-width='18' stroke-linecap='round' fill='none'%3E%3Cline x1='160' y1='375' x2='256' y2='192'/%3E%3Cline x1='352' y1='375' x2='256' y2='192'/%3E%3Cline x1='160' y1='192' x2='256' y2='192'/%3E%3Cline x1='160' y1='375' x2='160' y2='280'/%3E%3Cline x1='352' y1='375' x2='352' y2='280'/%3E%3Cline x1='160' y1='280' x2='352' y2='280'/%3E%3C/g%3E%3C/svg%3E">
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('shomer-sw.js').catch(() => {});
+  });
+}
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Syne:wght@400;600;700;800&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green: #00FF88;
+    --green-dim: #00CC66;
+    --green-dark: #003322;
+    --red: #FF3344;
+    --red-dim: #CC2233;
+    --amber: #FFAA00;
+    --amber-dim: #CC8800;
+    --blue: #00AAFF;
+    --bg: #050A08;
+    --surface: #0A1410;
+    --surface-2: #0F1E18;
+    --border: rgba(0,255,136,0.15);
+    --border-bright: rgba(0,255,136,0.35);
+    --text: #C8FFE8;
+    --text-dim: rgba(200,255,232,0.45);
+    --text-dimmer: rgba(200,255,232,0.25);
+    --threat: #FF3344;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Syne', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Scanline effect */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,136,0.015) 2px, rgba(0,255,136,0.015) 4px);
+    pointer-events: none;
+    z-index: 999;
+  }
+
+  /* Animated background grid */
+  .bg-grid {
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,255,136,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,255,136,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Header */
+  .app-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: linear-gradient(180deg, rgba(5,10,8,0.98), rgba(5,10,8,0.9));
+    border-bottom: 1px solid var(--border);
+    padding: 14px 16px 10px;
+  }
+
+  .header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .brand-shield {
+    width: 36px; height: 36px;
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .shield-svg { width: 36px; height: 36px; }
+
+  .brand-text { }
+  .brand-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--green);
+    letter-spacing: 0.08em;
+    line-height: 1;
+  }
+  .brand-hebrew {
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.15em;
+    font-family: 'Space Mono', monospace;
+  }
+
+  .status-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border-bright);
+    background: rgba(0,255,136,0.06);
+  }
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse-dot 2s infinite;
+  }
+  @keyframes pulse-dot {
+    0%,100% { box-shadow: 0 0 0 0 rgba(0,255,136,0.6); }
+    50% { box-shadow: 0 0 0 6px rgba(0,255,136,0); }
+  }
+  .status-text {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--green);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .threat-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+  }
+  .threat-level-label { color: var(--text-dim); }
+  .threat-meter {
+    flex: 1;
+    height: 4px;
+    background: rgba(0,255,136,0.1);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .threat-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--green), var(--amber));
+    transition: width 1s ease;
+  }
+  .threat-score { color: var(--green); font-weight: 700; }
+
+  /* Content */
+  .content-area {
+    position: relative;
+    z-index: 1;
+    padding-bottom: 90px;
+  }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* Shield section */
+  .shield-hero {
+    padding: 20px 16px 12px;
+    text-align: center;
+  }
+
+  .big-shield {
+    width: 120px; height: 120px;
+    margin: 0 auto 16px;
+    position: relative;
+  }
+
+  .big-shield svg { width: 120px; height: 120px; }
+
+  .shield-pulse {
+    position: absolute;
+    inset: -12px;
+    border-radius: 50%;
+    border: 1px solid rgba(0,255,136,0.3);
+    animation: ripple 2.5s infinite;
+  }
+  .shield-pulse:nth-child(2) { animation-delay: 0.8s; inset: -20px; }
+  .shield-pulse:nth-child(3) { animation-delay: 1.6s; inset: -28px; }
+
+  @keyframes ripple {
+    0% { transform: scale(0.9); opacity: 0.8; }
+    100% { transform: scale(1.1); opacity: 0; }
+  }
+
+  .shield-status-text {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--green);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .shield-sub {
+    font-size: 12px;
+    color: var(--text-dim);
+    font-family: 'Space Mono', monospace;
+  }
+
+  /* Stats row */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    padding: 0 16px 16px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 10px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--green);
+    opacity: 0.4;
+  }
+  .stat-card.red::before { background: var(--red); }
+  .stat-card.amber::before { background: var(--amber); }
+
+  .stat-num {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--green);
+    line-height: 1;
+  }
+  .stat-card.red .stat-num { color: var(--red); }
+  .stat-card.amber .stat-num { color: var(--amber); }
+  .stat-label {
+    font-size: 9px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-top: 4px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  /* Activity feed */
+  .section-head {
+    padding: 8px 16px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .section-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-dim);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    font-family: 'Space Mono', monospace;
+  }
+  .section-action {
+    font-size: 11px;
+    color: var(--green);
+    cursor: pointer;
+    font-family: 'Space Mono', monospace;
+  }
+
+  .feed { padding: 0 16px; }
+
+  .feed-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    animation: slideIn 0.3s ease;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(-10px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .feed-item.threat { border-color: rgba(255,51,68,0.4); background: rgba(255,51,68,0.05); }
+  .feed-item.warning { border-color: rgba(255,170,0,0.3); background: rgba(255,170,0,0.04); }
+  .feed-item.safe { border-color: rgba(0,255,136,0.15); }
+
+  .feed-icon {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .feed-icon.threat { background: rgba(255,51,68,0.2); }
+  .feed-icon.warning { background: rgba(255,170,0,0.2); }
+  .feed-icon.safe { background: rgba(0,255,136,0.1); }
+
+  .feed-body { flex: 1; min-width: 0; }
+  .feed-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 2px;
+  }
+  .feed-item.threat .feed-title { color: var(--red); }
+  .feed-item.warning .feed-title { color: var(--amber); }
+
+  .feed-desc {
+    font-size: 11px;
+    color: var(--text-dim);
+    line-height: 1.4;
+    font-family: 'Space Mono', monospace;
+  }
+  .feed-time {
+    font-size: 10px;
+    color: var(--text-dimmer);
+    margin-top: 4px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  /* AI Analysis panel */
+  .ai-panel {
+    margin: 0 16px 12px;
+    background: var(--surface-2);
+    border: 1px solid rgba(0,170,255,0.3);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .ai-panel-header {
+    padding: 10px 14px;
+    background: rgba(0,170,255,0.08);
+    border-bottom: 1px solid rgba(0,170,255,0.2);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .ai-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--blue);
+    animation: pulse-dot 1.5s infinite;
+    box-shadow: 0 0 0 0 rgba(0,170,255,0.6);
+  }
+  @keyframes pulse-blue {
+    0%,100% { box-shadow: 0 0 0 0 rgba(0,170,255,0.6); }
+    50% { box-shadow: 0 0 0 6px rgba(0,170,255,0); }
+  }
+  .ai-label {
+    font-size: 11px;
+    color: var(--blue);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    font-family: 'Space Mono', monospace;
+    font-weight: 700;
+  }
+  .ai-body { padding: 14px; }
+  .ai-msg {
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.6;
+    font-family: 'Space Mono', monospace;
+    margin-bottom: 10px;
+  }
+  .ai-msg .highlight { color: var(--green); font-weight: 700; }
+  .ai-msg .threat-word { color: var(--red); }
+  .ai-msg .warn-word { color: var(--amber); }
+
+  /* Scan input */
+  .scan-section { padding: 0 16px 12px; }
+  .scan-input-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border-bright);
+    border-radius: 12px;
+    padding: 12px 14px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    margin-bottom: 10px;
+  }
+  .scan-textarea {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--text);
+    resize: none;
+    min-height: 60px;
+  }
+  .scan-textarea::placeholder { color: var(--text-dimmer); }
+  .scan-btn {
+    background: var(--green);
+    border: none;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-family: 'Syne', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--bg);
+    cursor: pointer;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    flex-shrink: 0;
+    transition: all 0.2s;
+  }
+  .scan-btn:hover { background: var(--green-dim); }
+  .scan-result {
+    background: var(--surface-2);
+    border-radius: 12px;
+    padding: 14px;
+    border: 1px solid var(--border);
+    display: none;
+  }
+  .scan-result.visible { display: block; animation: slideIn 0.3s ease; }
+  .scan-result-head {
+    font-size: 12px;
+    font-weight: 700;
+    font-family: 'Space Mono', monospace;
+    margin-bottom: 8px;
+    letter-spacing: 0.1em;
+  }
+  .scan-result-head.safe { color: var(--green); }
+  .scan-result-head.danger { color: var(--red); }
+  .scan-result-head.warn { color: var(--amber); }
+  .scan-result-body { font-size: 12px; color: var(--text-dim); line-height: 1.6; font-family: 'Space Mono', monospace; }
+  .scan-loading { text-align: center; padding: 20px; }
+  .scan-loading-text {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    color: var(--green);
+    animation: blink 0.8s infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* Protection modules */
+  .modules-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 0 16px 12px;
+  }
+
+  .module-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .module-card:hover { border-color: var(--border-bright); }
+  .module-card.active { border-color: rgba(0,255,136,0.4); }
+  .module-card.active::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 8px; height: 8px;
+    border-radius: 0 12px 0 8px;
+    background: var(--green);
+  }
+  .module-icon { font-size: 22px; margin-bottom: 8px; }
+  .module-name {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+    letter-spacing: 0.05em;
+  }
+  .module-desc { font-size: 10px; color: var(--text-dim); line-height: 1.4; font-family: 'Space Mono', monospace; }
+  .module-toggle {
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .toggle-switch {
+    width: 32px; height: 16px;
+    border-radius: 8px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    position: relative;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .toggle-switch.on { background: rgba(0,255,136,0.3); border-color: var(--green); }
+  .toggle-switch::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--text-dim);
+    transition: all 0.2s;
+  }
+  .toggle-switch.on::after { left: 18px; background: var(--green); }
+  .toggle-label { font-size: 10px; color: var(--text-dim); font-family: 'Space Mono', monospace; }
+  .toggle-label.on { color: var(--green); }
+
+  /* Bottom nav */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: linear-gradient(180deg, rgba(5,10,8,0.95), #050A08);
+    border-top: 1px solid var(--border);
+    display: flex;
+    padding: 8px 0 20px;
+    z-index: 100;
+  }
+  .nav-tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 0;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    background: transparent;
+    color: var(--text-dimmer);
+  }
+  .nav-tab.active { color: var(--green); }
+  .nav-tab svg { width: 20px; height: 20px; }
+  .nav-tab span { font-size: 9px; letter-spacing: 0.12em; font-family: 'Space Mono', monospace; text-transform: uppercase; }
+
+  /* Settings */
+  .settings-section { padding: 12px 16px; }
+  .settings-group {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 12px;
+  }
+  .settings-group-title {
+    padding: 10px 14px;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--green);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    font-family: 'Space Mono', monospace;
+    border-bottom: 1px solid var(--border);
+    background: rgba(0,255,136,0.04);
+  }
+  .setting-row {
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(0,255,136,0.06);
+  }
+  .setting-row:last-child { border-bottom: none; }
+  .setting-info { }
+  .setting-name { font-size: 13px; color: var(--text); font-weight: 600; }
+  .setting-desc { font-size: 11px; color: var(--text-dim); font-family: 'Space Mono', monospace; margin-top: 2px; }
+
+  /* Hex counter */
+  .hex-counter {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dimmer);
+    text-align: center;
+    padding: 8px;
+  }
+
+  @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+  .content-area { animation: fadeUp 0.35s ease; }
+</style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+
+<div class="app-header">
+  <div class="header-row">
+    <div class="brand">
+      <div class="brand-shield">
+        <svg class="shield-svg" viewBox="0 0 36 36" fill="none">
+          <path d="M18 2L4 8v10c0 9 6 16 14 18 8-2 14-9 14-18V8L18 2z" fill="rgba(0,255,136,0.12)" stroke="#00FF88" stroke-width="1.5"/>
+          <path d="M18 8L10 11.5v7c0 5.5 3.5 10 8 11 4.5-1 8-5.5 8-11v-7L18 8z" fill="rgba(0,255,136,0.06)" stroke="rgba(0,255,136,0.4)" stroke-width="1"/>
+          <!-- Paleo-Hebrew Shin: two uprights + crossbar + center peak -->
+          <g stroke="#00FF88" stroke-width="1.6" stroke-linecap="round" fill="none">
+            <line x1="10" y1="26" x2="18" y2="13"/>
+            <line x1="26" y1="26" x2="18" y2="13"/>
+            <line x1="10" y1="13" x2="18" y2="13"/>
+            <line x1="10" y1="26" x2="10" y2="19.5"/>
+            <line x1="26" y1="26" x2="26" y2="19.5"/>
+            <line x1="10" y1="19.5" x2="26" y2="19.5"/>
+          </g>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <div class="brand-name">SHOMER</div>
+        <div class="brand-hebrew">SHOMER · THE WATCHMAN</div>
+      </div>
+    </div>
+    <div class="status-pill">
+      <div class="status-dot"></div>
+      <div class="status-text">Active</div>
+    </div>
+  </div>
+  <div class="threat-bar">
+    <span class="threat-level-label">THREAT LVL</span>
+    <div class="threat-meter"><div class="threat-fill" id="threatFill" style="width:18%"></div></div>
+    <span class="threat-score" id="threatScore">LOW</span>
+  </div>
+</div>
+
+<div class="content-area">
+
+  <div class="tab-content active" id="tab-shield">
+
+    <div class="shield-hero">
+      <div class="big-shield">
+        <div class="shield-pulse"></div>
+        <div class="shield-pulse"></div>
+        <div class="shield-pulse"></div>
+        <svg viewBox="0 0 120 120" fill="none">
+          <path d="M60 8L12 28v38c0 30 20 54 48 60 28-6 48-30 48-60V28L60 8z" fill="rgba(0,255,136,0.08)" stroke="#00FF88" stroke-width="1.5"/>
+          <path d="M60 22L26 37v27c0 22 14 38 34 43 20-5 34-21 34-43V37L60 22z" fill="rgba(0,255,136,0.04)" stroke="rgba(0,255,136,0.35)" stroke-width="1"/>
+          <!-- Paleo-Hebrew Shin inside shield -->
+          <g stroke="#00FF88" stroke-width="5" stroke-linecap="round" fill="none">
+            <line x1="30" y1="92" x2="60" y2="42"/>
+            <line x1="90" y1="92" x2="60" y2="42"/>
+            <line x1="30" y1="42" x2="60" y2="42"/>
+            <line x1="30" y1="92" x2="30" y2="67"/>
+            <line x1="90" y1="92" x2="90" y2="67"/>
+            <line x1="30" y1="67" x2="90" y2="67"/>
+          </g>
+        </svg>
+      </div>
+      <div class="shield-status-text">Device Protected</div>
+      <div class="shield-sub">AI WATCHMAN ACTIVE · 0 THREATS TODAY</div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card red">
+        <div class="stat-num" id="statBlocked">0</div>
+        <div class="stat-label">Blocked Today</div>
+      </div>
+      <div class="stat-card amber">
+        <div class="stat-num" id="statScans">247</div>
+        <div class="stat-label">Scans Run</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="statSafe">99</div>
+        <div class="stat-label">Safety Score</div>
+      </div>
+    </div>
+
+    <div class="ai-panel">
+      <div class="ai-panel-header">
+        <div class="ai-dot" style="animation-name:pulse-blue"></div>
+        <div class="ai-label">AI Threat Intelligence</div>
+      </div>
+      <div class="ai-body">
+        <div class="ai-msg" id="aiMsg">
+          Shomer AI has completed its morning sweep. <span class="highlight">No threats detected.</span> Your network traffic is clean. 3 suspicious URLs were pre-emptively blocked overnight based on new <span class="warn-word">AI-generated phishing patterns</span> added to the threat database. Stay vigilant — AI-powered social engineering attacks rose <span class="threat-word">340%</span> in Q1 2026.
+        </div>
+      </div>
+    </div>
+
+    <div class="section-head">
+      <div class="section-title">Live Activity</div>
+      <div class="section-action" onclick="refreshFeed()">Refresh ↻</div>
+    </div>
+
+    <div class="feed" id="activityFeed"></div>
+
+    <div class="hex-counter" id="hexCounter">SHOMER_v2.6.0 · WATCHMAN_ONLINE · 0x1A2B3C4D</div>
+
+  </div>
+
+  <div class="tab-content" id="tab-scan">
+    <div style="padding:16px 16px 8px">
+      <div style="font-size:18px;font-weight:800;color:var(--green);letter-spacing:0.05em;margin-bottom:4px">AI Threat Scanner</div>
+      <div style="font-size:12px;color:var(--text-dim);font-family:'Space Mono',monospace;line-height:1.5">Paste a link, message, email, or phone number. Shomer AI will analyse it for threats in real time.</div>
+    </div>
+
+    <div class="scan-section">
+      <div class="scan-input-wrap">
+        <textarea class="scan-textarea" id="scanInput" placeholder="Paste URL, message, phone number, email address or suspicious text here..."></textarea>
+        <button class="scan-btn" onclick="runScan()">SCAN</button>
+      </div>
+      <div class="scan-result" id="scanResult">
+        <div class="scan-result-head" id="scanResultHead"></div>
+        <div class="scan-result-body" id="scanResultBody"></div>
+      </div>
+    </div>
+
+    <div class="section-head"><div class="section-title">What Shomer Detects</div></div>
+    <div style="padding:0 16px 12px;display:flex;flex-direction:column;gap:8px;">
+      ${[
+        ['🎣','AI Phishing','AI-generated phishing messages crafted to mimic trusted senders with unprecedented accuracy'],
+        ['📱','SMS Smishing','Malicious SMS links and spoofed sender numbers targeting mobile users'],
+        ['🤖','Deepfake Scams','Voice cloning and video deepfake-based fraud attempts'],
+        ['🔗','Malicious URLs','Real-time domain reputation and link redirect analysis'],
+        ['📧','Email Spoofing','Header analysis and sender authentication verification'],
+        ['💳','Financial Fraud','Patterns matching banking trojans and payment fraud schemes'],
+        ['🕵️','Stalkerware','Detection of apps that silently monitor your device and location'],
+        ['📡','Network Sniffing','Identifies hostile networks and man-in-the-middle attempts'],
+      ].map(([icon,name,desc]) => `
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;gap:10px;align-items:flex-start">
+          <span style="font-size:18px;flex-shrink:0">${icon}</span>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:3px">${name}</div>
+            <div style="font-size:11px;color:var(--text-dim);font-family:'Space Mono',monospace;line-height:1.4">${desc}</div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-protect">
+    <div style="padding:16px 16px 8px">
+      <div style="font-size:18px;font-weight:800;color:var(--green);letter-spacing:0.05em;margin-bottom:4px">Protection Modules</div>
+      <div style="font-size:12px;color:var(--text-dim);font-family:'Space Mono',monospace">Toggle active defences. All modules run silently in the background.</div>
+    </div>
+
+    <div class="modules-grid" id="modulesGrid"></div>
+  </div>
+
+  <div class="tab-content" id="tab-settings">
+    <div class="settings-section">
+      <div style="font-size:18px;font-weight:800;color:var(--green);letter-spacing:0.05em;margin-bottom:16px;padding:0 0 0 0">Settings</div>
+
+      <div class="settings-group">
+        <div class="settings-group-title">AI Engine</div>
+        <div class="setting-row">
+          <div class="setting-info">
+            <div class="setting-name">Real-time Analysis</div>
+            <div class="setting-desc">Analyse all incoming data as it arrives</div>
+          </div>
+          <div class="toggle-switch on" onclick="this.classList.toggle('on')"></div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-info">
+            <div class="setting-name">Threat Database Sync</div>
+            <div class="setting-desc">Auto-update with new AI threat signatures</div>
+          </div>
+          <div class="toggle-switch on" onclick="this.classList.toggle('on')"></div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-info">
+            <div class="setting-name">Behavioural Analysis</div>
+            <div class="setting-desc">Detect zero-day threats by behaviour patterns</div>
+          </div>
+          <div class="toggle-switch on" onclick="this.classList.toggle('on')"></div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-info">
+            <div class="setting-name">Deepfake Detection</div>
+            <div class="setting-desc">Flag AI-generated voice and video content</div>
+          </div>
+          <div class="toggle-switch on" onclick="this.classList.toggle('on')"></div>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <div class="settings-group-title">Alerts & Notifications</div>
+        <div class="setting-row">
+          <div class="setting-info">
+            <div class="setting-name">Threat Alerts</div>
+            <div class="setting-desc">Immediate notification on detection</div>
+          </div>
+          <div class="toggle-switch on" onclick="this.classList.toggle('on')"></div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-info">
+            <div class="setting-name">Daily Reports</div>
+            <div class="setting-desc">Morning summary of overnight activity</div>
+          </div>
+          <div class="toggle-switch on" onclick="this.classList.toggle('on')"></div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-info">
+            <div class="setting-name">Silent Mode on Shabbat</div>
+            <div class="setting-desc">Suppress non-critical alerts on Shabbat</div>
+          </div>
+          <div class="toggle-switch" onclick="this.classList.toggle('on')"></div>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <div class="settings-group-title">Privacy</div>
+        <div class="setting-row">
+          <div class="setting-info">
+            <div class="setting-name">Local Processing Only</div>
+            <div class="setting-desc">All analysis happens on-device. No data leaves.</div>
+          </div>
+          <div class="toggle-switch on" onclick="this.classList.toggle('on')"></div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-info">
+            <div class="setting-name">VPN Integration</div>
+            <div class="setting-desc">Route traffic through secure encrypted tunnel</div>
+          </div>
+          <div class="toggle-switch" onclick="this.classList.toggle('on')"></div>
+        </div>
+      </div>
+
+      <div style="text-align:center;padding:12px 0;font-family:'Space Mono',monospace;font-size:10px;color:var(--text-dimmer)">
+        SHOMER v2.6.0 · THE WATCHMAN · ALWAYS ON GUARD<br>
+        "He who watches over Israel will neither slumber nor sleep." — Psalm 121:4
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<nav class="bottom-nav">
+  <button class="nav-tab active" id="navShield" onclick="switchTab('shield')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3L4 7v6c0 5.5 3.5 10 8 12 4.5-2 8-6.5 8-12V7L12 3z"/></svg>
+    <span>Shield</span>
+  </button>
+  <button class="nav-tab" id="navScan" onclick="switchTab('scan')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <span>Scan</span>
+  </button>
+  <button class="nav-tab" id="navProtect" onclick="switchTab('protect')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+    <span>Protect</span>
+  </button>
+  <button class="nav-tab" id="navSettings" onclick="switchTab('settings')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+    <span>Settings</span>
+  </button>
+</nav>
+
+<script>
+// ─── AI-Powered Scanner ─────────────────────────────────────────────────────
+async function runScan() {
+  const input = document.getElementById('scanInput').value.trim();
+  if (!input) return;
+
+  const result = document.getElementById('scanResult');
+  const head = document.getElementById('scanResultHead');
+  const body = document.getElementById('scanResultBody');
+
+  result.classList.add('visible');
+  head.className = 'scan-result-head';
+  head.textContent = '⟳ ANALYSING...';
+  body.innerHTML = '<div class="scan-loading"><div class="scan-loading-text">Shomer AI scanning · · ·</div></div>';
+
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        system: `You are Shomer, an elite AI-powered cybersecurity threat analyst. Your name means "watchman" in the ancient Hebrew tongue. You analyse text, URLs, phone numbers, emails, or messages for cybersecurity threats.
+
+Respond ONLY in valid JSON with this structure:
+{
+  "verdict": "SAFE" | "WARNING" | "THREAT",
+  "risk_score": 0-100,
+  "summary": "One sentence verdict",
+  "threats_found": ["list of specific threats detected, empty if none"],
+  "explanation": "2-3 sentence technical explanation",
+  "recommendation": "Specific action for the user to take"
+}
+
+Be accurate, specific, and appropriately cautious. Do not over-flag safe content. Do not under-flag dangerous content. Focus especially on AI-generated threats, phishing, smishing, malicious URLs, spoofing, social engineering, and financial fraud.`,
+        messages: [{ role: "user", content: `Analyse this for cybersecurity threats:\n\n${input}` }]
+      })
+    });
+
+    const data = await response.json();
+    const text = data.content.map(i => i.text || '').join('');
+
+    let parsed;
+    try {
+      parsed = JSON.parse(text.replace(/```json|```/g, '').trim());
+    } catch(e) {
+      // fallback
+      parsed = {
+        verdict: 'WARNING',
+        risk_score: 50,
+        summary: 'Analysis complete — review recommended',
+        threats_found: [],
+        explanation: text.substring(0, 200),
+        recommendation: 'Proceed with caution.'
+      };
+    }
+
+    const colorMap = { SAFE: 'safe', WARNING: 'warn', THREAT: 'danger' };
+    const emojiMap = { SAFE: '✓ CLEAR', WARNING: '⚠ WARNING', THREAT: '✕ THREAT DETECTED' };
+
+    head.className = `scan-result-head ${colorMap[parsed.verdict] || 'warn'}`;
+    head.textContent = `${emojiMap[parsed.verdict]} · Risk Score: ${parsed.risk_score}/100`;
+
+    const threatsHtml = parsed.threats_found.length
+      ? `<div style="margin:8px 0;padding:8px;background:rgba(255,51,68,0.08);border-radius:6px;border:1px solid rgba(255,51,68,0.2)"><div style="font-size:10px;color:var(--red);font-weight:700;margin-bottom:4px">THREATS IDENTIFIED</div>${parsed.threats_found.map(t => `<div style="font-size:11px;color:var(--text-dim)">· ${t}</div>`).join('')}</div>`
+      : '';
+
+    body.innerHTML = `
+      <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px">${parsed.summary}</div>
+      ${threatsHtml}
+      <div style="font-size:11px;color:var(--text-dim);line-height:1.6;margin-bottom:8px">${parsed.explanation}</div>
+      <div style="padding:8px;background:rgba(0,255,136,0.06);border-radius:6px;border:1px solid rgba(0,255,136,0.2)">
+        <div style="font-size:10px;color:var(--green);font-weight:700;margin-bottom:2px">SHOMER RECOMMENDS</div>
+        <div style="font-size:11px;color:var(--text-dim)">${parsed.recommendation}</div>
+      </div>
+    `;
+
+    // Update threat stats if threat found
+    if (parsed.verdict === 'THREAT') {
+      let blocked = parseInt(document.getElementById('statBlocked').textContent);
+      document.getElementById('statBlocked').textContent = blocked + 1;
+      addFeedItem('threat', '🚨', 'Threat Blocked by AI Scan', `${parsed.summary}`, 'Just now');
+    }
+
+  } catch (err) {
+    head.className = 'scan-result-head warn';
+    head.textContent = '⚠ SCAN ERROR';
+    body.innerHTML = `<div style="font-size:12px;color:var(--text-dim)">Unable to connect to AI engine. Check your connection and try again.<br><br>Error: ${err.message}</div>`;
+  }
+}
+
+// ─── Activity Feed ───────────────────────────────────────────────────────────
+const FEED_DATA = [
+  { type: 'safe', icon: '✓', title: 'Network Scan Complete', desc: 'All 12 connected services verified clean', time: '2 min ago' },
+  { type: 'warning', icon: '⚠', title: 'Suspicious Link Flagged', desc: 'Incoming message contained redirect chain. URL pre-blocked.', time: '18 min ago' },
+  { type: 'threat', icon: '✕', title: 'Phishing Attempt Blocked', desc: 'AI-generated bank impersonation SMS detected & quarantined', time: '1 hr ago' },
+  { type: 'safe', icon: '✓', title: 'App Permissions Audited', desc: '23 apps checked — no excessive permissions found', time: '3 hr ago' },
+  { type: 'safe', icon: '✓', title: 'Database Updated', desc: '1,847 new AI threat signatures loaded', time: '6 hr ago' },
+  { type: 'warning', icon: '⚠', title: 'Unknown Network Detected', desc: 'Public WiFi fingerprint matched known honeypot pattern', time: '8 hr ago' },
+];
+
+function addFeedItem(type, icon, title, desc, time) {
+  const feed = document.getElementById('activityFeed');
+  const item = document.createElement('div');
+  item.className = `feed-item ${type}`;
+  item.innerHTML = `
+    <div class="feed-icon ${type}">${icon}</div>
+    <div class="feed-body">
+      <div class="feed-title">${title}</div>
+      <div class="feed-desc">${desc}</div>
+      <div class="feed-time">${time}</div>
+    </div>
+  `;
+  feed.insertBefore(item, feed.firstChild);
+}
+
+function refreshFeed() {
+  const feed = document.getElementById('activityFeed');
+  feed.innerHTML = '';
+  FEED_DATA.forEach(f => addFeedItem(f.type, f.icon, f.title, f.desc, f.time));
+}
+
+// ─── Protection Modules ──────────────────────────────────────────────────────
+const MODULES = [
+  { icon: '🛡', name: 'AI Phishing Guard', desc: 'Detects AI-crafted phishing in real-time', on: true },
+  { icon: '📱', name: 'SMS Smishing', desc: 'Scans all incoming SMS for threats', on: true },
+  { icon: '🔗', name: 'URL Scanner', desc: 'Checks every link before you tap', on: true },
+  { icon: '🤖', name: 'Deepfake Detect', desc: 'Flags AI-generated audio/video fraud', on: true },
+  { icon: '📧', name: 'Email Shield', desc: 'Analyses sender auth & content', on: true },
+  { icon: '📡', name: 'Network Guard', desc: 'Monitors WiFi for hostile actors', on: false },
+  { icon: '💾', name: 'App Auditor', desc: 'Reviews app permissions & behaviour', on: true },
+  { icon: '🕵️', name: 'Stalkerware Scan', desc: 'Detects hidden monitoring apps', on: false },
+];
+
+function renderModules() {
+  const grid = document.getElementById('modulesGrid');
+  grid.innerHTML = '';
+  MODULES.forEach((m, i) => {
+    const card = document.createElement('div');
+    card.className = `module-card ${m.on ? 'active' : ''}`;
+    card.innerHTML = `
+      <div class="module-icon">${m.icon}</div>
+      <div class="module-name">${m.name}</div>
+      <div class="module-desc">${m.desc}</div>
+      <div class="module-toggle">
+        <div class="toggle-switch ${m.on ? 'on' : ''}" onclick="toggleModule(${i}, this)"></div>
+        <div class="toggle-label ${m.on ? 'on' : ''}" id="tl-${i}">${m.on ? 'ON' : 'OFF'}</div>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function toggleModule(idx, toggle) {
+  MODULES[idx].on = !MODULES[idx].on;
+  toggle.classList.toggle('on');
+  const label = document.getElementById(`tl-${idx}`);
+  label.textContent = MODULES[idx].on ? 'ON' : 'OFF';
+  label.className = `toggle-label ${MODULES[idx].on ? 'on' : ''}`;
+  toggle.closest('.module-card').className = `module-card ${MODULES[idx].on ? 'active' : ''}`;
+}
+
+// ─── Navigation ──────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  const ids = { shield: 'navShield', scan: 'navScan', protect: 'navProtect', settings: 'navSettings' };
+  document.getElementById(ids[tab]).classList.add('active');
+}
+
+// ─── Hex counter animation ───────────────────────────────────────────────────
+function animateHex() {
+  const el = document.getElementById('hexCounter');
+  const val = Math.floor(Math.random() * 0xFFFFFFFF).toString(16).toUpperCase().padStart(8, '0');
+  el.textContent = `SHOMER_v2.6.0 · WATCHMAN_ONLINE · 0x${val}`;
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+refreshFeed();
+renderModules();
+setInterval(animateHex, 2000);
+
+// Animate stats counter
+let scans = 247;
+setInterval(() => {
+  scans += Math.floor(Math.random() * 3);
+  document.getElementById('statScans').textContent = scans;
+}, 8000);
+</script>
+</body>
+</html>

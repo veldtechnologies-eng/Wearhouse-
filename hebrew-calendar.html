@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Hebrew Calendar — Kingdom Preppers</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #C8973A;
+    --gold-light: #E8B95A;
+    --gold-dim: #8A6520;
+    --burnt: #8B3A2A;
+    --parchment: #F2EAD8;
+    --parchment-dark: #DDD0B5;
+    --ink: #1A1208;
+    --stone: #2C2418;
+    --stone-mid: #3D3020;
+    --accent: #C8973A;
+    --shabbat: #C8973A;
+    --feast: #8B3A2A;
+    --bg: #0E0B06;
+    --surface: #1A1208;
+    --border: rgba(200,151,58,0.25);
+    --text-dim: rgba(242,234,216,0.5);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Crimson Pro', Georgia, serif;
+    background: var(--bg);
+    color: var(--parchment);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grain overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.4;
+  }
+
+  /* Header */
+  .app-header {
+    background: linear-gradient(180deg, #0E0B06 0%, #1A1208 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 20px 12px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+
+  .logo-mark {
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    color: var(--gold);
+    text-transform: uppercase;
+  }
+
+  .sync-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--gold);
+    font-family: 'Crimson Pro', serif;
+    font-size: 12px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .sync-btn:hover { background: rgba(200,151,58,0.1); }
+  .sync-btn.syncing { opacity: 0.6; }
+
+  .nav-strip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .nav-arrow {
+    width: 36px; height: 36px;
+    background: rgba(200,151,58,0.1);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    color: var(--gold);
+    font-size: 18px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .nav-arrow:hover { background: rgba(200,151,58,0.2); }
+
+  .month-title-block { text-align: center; flex: 1; }
+  .gregorian-month {
+    font-family: 'Cinzel', serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--parchment);
+    letter-spacing: 0.05em;
+  }
+  .gregorian-month span { color: var(--gold); }
+  .hebrew-month-label {
+    font-size: 13px;
+    color: var(--gold);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    font-style: italic;
+  }
+
+  /* Today banner */
+  .today-banner {
+    margin: 12px 16px;
+    background: linear-gradient(135deg, rgba(200,151,58,0.12), rgba(200,151,58,0.05));
+    border: 1px solid rgba(200,151,58,0.3);
+    border-radius: 12px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .today-orb {
+    width: 44px; height: 44px;
+    background: var(--gold);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Cinzel', serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--bg);
+    flex-shrink: 0;
+  }
+
+  .today-info { flex: 1; }
+  .today-greg { font-size: 15px; font-weight: 600; color: var(--parchment); }
+  .today-heb { font-size: 13px; color: var(--gold); font-style: italic; }
+  .today-feast { font-size: 11px; color: var(--burnt); font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; margin-top: 2px; }
+
+  /* Calendar grid */
+  .calendar-section {
+    padding: 0 12px 12px;
+  }
+
+  .day-headers {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    margin-bottom: 4px;
+  }
+
+  .day-header {
+    text-align: center;
+    font-family: 'Cinzel', serif;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    color: var(--text-dim);
+    padding: 6px 0;
+    text-transform: uppercase;
+  }
+  .day-header.shabbat { color: var(--gold); }
+
+  .days-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 3px;
+  }
+
+  .day-cell {
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+    padding: 2px;
+    min-height: 44px;
+  }
+  .day-cell:hover { background: rgba(200,151,58,0.08); }
+
+  .day-cell.other-month { opacity: 0.25; pointer-events: none; }
+  .day-cell.today .greg-num {
+    background: var(--gold);
+    color: var(--bg);
+    border-radius: 50%;
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+  }
+
+  .day-cell.shabbat .greg-num { color: var(--gold); }
+  .day-cell.feast-day { background: rgba(139,58,42,0.15); border: 1px solid rgba(139,58,42,0.3); }
+  .day-cell.pure-convocation { background: rgba(200,151,58,0.12); border: 1px solid rgba(200,151,58,0.35); }
+  .day-cell.new-month-day::after {
+    content: '';
+    position: absolute;
+    top: 4px; right: 4px;
+    width: 5px; height: 5px;
+    background: var(--gold);
+    border-radius: 50%;
+  }
+
+  .greg-num {
+    font-family: 'Cinzel', serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--parchment);
+    line-height: 1;
+  }
+  .heb-num {
+    font-size: 9px;
+    color: var(--text-dim);
+    margin-top: 1px;
+    line-height: 1;
+  }
+  .feast-label {
+    font-size: 7px;
+    color: var(--burnt);
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    line-height: 1;
+    margin-top: 1px;
+    text-align: center;
+  }
+  .day-cell.pure-convocation .feast-label { color: var(--gold); }
+
+  /* At a Glance panel */
+  .glance-panel {
+    margin: 0 12px 12px;
+    background: rgba(26,18,8,0.8);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+
+  .glance-header {
+    background: linear-gradient(90deg, rgba(200,151,58,0.2), rgba(200,151,58,0.05));
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .glance-title {
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    color: var(--gold);
+    text-transform: uppercase;
+  }
+  .glance-month-num {
+    font-family: 'Cinzel', serif;
+    font-size: 13px;
+    color: var(--parchment);
+  }
+
+  .glance-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    padding: 8px 12px 12px;
+    gap: 2px;
+  }
+
+  .glance-header-row {
+    display: contents;
+  }
+  .glance-day-label {
+    font-family: 'Cinzel', serif;
+    font-size: 8px;
+    color: var(--text-dim);
+    text-align: center;
+    padding: 3px 0;
+    letter-spacing: 0.1em;
+  }
+  .glance-day-label:last-child { color: var(--gold); }
+
+  .glance-num {
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    color: var(--parchment);
+    text-align: center;
+    padding: 4px 2px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .glance-num.shabbat { color: var(--gold); font-weight: 600; }
+  .glance-num.convocation { background: rgba(200,151,58,0.2); }
+  .glance-num.other { color: var(--text-dim); }
+  .glance-num.feast { background: rgba(139,58,42,0.3); color: var(--burnt); }
+
+  /* Feast/Info modal */
+  .info-card {
+    margin: 0 12px 12px;
+    background: linear-gradient(135deg, rgba(139,58,42,0.15), rgba(26,18,8,0.9));
+    border: 1px solid rgba(139,58,42,0.4);
+    border-radius: 14px;
+    padding: 16px;
+    display: none;
+  }
+  .info-card.visible { display: block; }
+  .info-card-title {
+    font-family: 'Cinzel', serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--gold);
+    margin-bottom: 6px;
+  }
+  .info-card-date { font-size: 13px; color: var(--text-dim); margin-bottom: 8px; }
+  .info-card-desc { font-size: 14px; color: var(--parchment); line-height: 1.6; }
+  .info-card-scripture { font-size: 12px; color: var(--gold); font-style: italic; margin-top: 8px; }
+
+  /* Legend */
+  .legend {
+    margin: 0 12px 16px;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+  .legend-dot.convocation { background: rgba(200,151,58,0.4); border: 1px solid rgba(200,151,58,0.5); }
+  .legend-dot.feast { background: rgba(139,58,42,0.4); border: 1px solid rgba(139,58,42,0.5); }
+  .legend-dot.shabbat { background: var(--gold); border-radius: 50%; }
+  .legend-dot.new-month { background: var(--gold); border-radius: 50%; width: 6px; height: 6px; }
+
+  /* Source link */
+  .source-bar {
+    margin: 0 12px 24px;
+    text-align: center;
+  }
+  .source-link {
+    color: var(--gold-dim);
+    font-size: 12px;
+    text-decoration: none;
+    font-style: italic;
+    border-bottom: 1px solid var(--gold-dim);
+    padding-bottom: 1px;
+    transition: color 0.2s;
+  }
+  .source-link:hover { color: var(--gold); }
+
+  /* Divider */
+  .section-divider {
+    margin: 0 12px 12px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
+  }
+
+  /* Verse strip */
+  .verse-strip {
+    margin: 0 12px 12px;
+    padding: 12px 16px;
+    background: rgba(200,151,58,0.04);
+    border-left: 3px solid var(--gold-dim);
+    border-radius: 0 8px 8px 0;
+  }
+  .verse-text {
+    font-size: 13px;
+    color: var(--parchment);
+    font-style: italic;
+    line-height: 1.6;
+  }
+  .verse-ref {
+    font-size: 11px;
+    color: var(--gold);
+    margin-top: 4px;
+    font-family: 'Cinzel', serif;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+  }
+
+  /* Bottom nav */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0; right: 0;
+    background: linear-gradient(180deg, rgba(14,11,6,0.95), #0E0B06);
+    border-top: 1px solid var(--border);
+    display: flex;
+    padding: 8px 0 20px;
+    z-index: 100;
+  }
+  .nav-tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 0;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+  }
+  .nav-tab.active { color: var(--gold); }
+  .nav-tab svg { width: 22px; height: 22px; }
+  .nav-tab span { font-size: 10px; letter-spacing: 0.08em; font-family: 'Cinzel', serif; }
+
+  .content-area {
+    padding-bottom: 90px;
+  }
+
+  /* Feasts tab */
+  .feasts-list { padding: 12px; }
+  .feast-card {
+    background: rgba(26,18,8,0.8);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .feast-card:hover { border-color: var(--gold); background: rgba(200,151,58,0.05); }
+  .feast-card-name {
+    font-family: 'Cinzel', serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--gold);
+    margin-bottom: 4px;
+  }
+  .feast-card-date { font-size: 13px; color: var(--parchment); margin-bottom: 4px; }
+  .feast-card-desc { font-size: 12px; color: var(--text-dim); line-height: 1.5; }
+  .feast-card-type {
+    display: inline-block;
+    margin-top: 6px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-family: 'Cinzel', serif;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .feast-card-type.convocation { background: rgba(200,151,58,0.2); color: var(--gold); }
+  .feast-card-type.regular { background: rgba(139,58,42,0.2); color: var(--burnt); }
+
+  /* Learn tab */
+  .learn-section { padding: 12px; }
+  .learn-card {
+    background: rgba(26,18,8,0.8);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .learn-card h3 {
+    font-family: 'Cinzel', serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--gold);
+    margin-bottom: 8px;
+    letter-spacing: 0.05em;
+  }
+  .learn-card p { font-size: 13px; color: var(--parchment); line-height: 1.7; }
+
+  /* Sync status */
+  .sync-status {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-dim);
+    padding: 8px 0;
+    font-style: italic;
+  }
+
+  /* Animations */
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .content-area { animation: fadeIn 0.4s ease; }
+
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+  .syncing-dot { animation: pulse 1s infinite; }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <div class="header-top">
+    <div class="logo-mark">⊕ Kingdom Preppers</div>
+    <button class="sync-btn" id="syncBtn" onclick="syncCalendar()">
+      <span id="syncIcon">↻</span>
+      <span id="syncText">Sync</span>
+    </button>
+  </div>
+  <div class="nav-strip">
+    <div class="nav-arrow" onclick="navigate(-1)">‹</div>
+    <div class="month-title-block">
+      <div class="gregorian-month" id="gregMonthTitle">APRIL <span>2026</span></div>
+      <div class="hebrew-month-label" id="hebMonthLabel">1st Hebrew Month</div>
+    </div>
+    <div class="nav-arrow" onclick="navigate(1)">›</div>
+  </div>
+</div>
+
+<div class="content-area">
+  <div class="tab-content active" id="tab-calendar">
+
+    <div class="today-banner" id="todayBanner">
+      <div class="today-orb" id="todayNum">12</div>
+      <div class="today-info">
+        <div class="today-greg" id="todayGreg">Sunday, April 12, 2026</div>
+        <div class="today-heb" id="todayHeb">8th Day, 1st Hebrew Month</div>
+        <div class="today-feast" id="todayFeast"></div>
+      </div>
+    </div>
+
+    <div class="calendar-section">
+      <div class="day-headers">
+        <div class="day-header">Sun</div>
+        <div class="day-header">Mon</div>
+        <div class="day-header">Tue</div>
+        <div class="day-header">Wed</div>
+        <div class="day-header">Thu</div>
+        <div class="day-header">Fri</div>
+        <div class="day-header shabbat">Shab</div>
+      </div>
+      <div class="days-grid" id="daysGrid"></div>
+    </div>
+
+    <div class="info-card" id="infoCard">
+      <div class="info-card-title" id="infoTitle"></div>
+      <div class="info-card-date" id="infoDate"></div>
+      <div class="info-card-desc" id="infoDesc"></div>
+      <div class="info-card-scripture" id="infoScripture"></div>
+    </div>
+
+    <div class="section-divider"></div>
+
+    <div class="glance-panel">
+      <div class="glance-header">
+        <div class="glance-title">Hebrew Month at a Glance</div>
+        <div class="glance-month-num" id="glanceLabel">1st Month</div>
+      </div>
+      <div class="glance-grid" id="glanceGrid"></div>
+    </div>
+
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot convocation"></div>Pure Convocation</div>
+      <div class="legend-item"><div class="legend-dot feast"></div>Feast Day</div>
+      <div class="legend-item"><div class="legend-dot shabbat"></div>Shabbat</div>
+      <div class="legend-item"><div class="legend-dot new-month"></div>New Month</div>
+    </div>
+
+    <div class="section-divider"></div>
+
+    <div class="verse-strip" id="verseStrip">
+      <div class="verse-text" id="verseText"></div>
+      <div class="verse-ref" id="verseRef"></div>
+    </div>
+
+    <div class="sync-status" id="syncStatus">Last synced: kingdomepreppers.org</div>
+
+    <div class="source-bar">
+      <a href="https://www.kingdompreppers.org" target="_blank" class="source-link">kingdompreppers.org — Source Calendar</a>
+    </div>
+
+  </div>
+
+  <div class="tab-content" id="tab-feasts">
+    <div class="feasts-list" id="feastsList"></div>
+  </div>
+
+  <div class="tab-content" id="tab-learn">
+    <div class="learn-section">
+      <div class="learn-card">
+        <h3>The Fixed Solar Calendar</h3>
+        <p>This calendar follows a 364-day year — 12 months of 30 days each, plus 4 season days that fall on Shabbats and mark the transitions between the four seasons. This structure keeps the feasts in their proper seasons every year.</p>
+      </div>
+      <div class="learn-card">
+        <h3>The Shabbat Cycle</h3>
+        <p>The 7th day Shabbat always falls on the same day of the week. New months always begin on the 1st day of the week (Sunday). This creates a perfectly repeating weekly pattern across every month of the year.</p>
+      </div>
+      <div class="learn-card">
+        <h3>New Year & First Month</h3>
+        <p>The year begins in spring, with the 1st Hebrew Month corresponding to early April. This aligns with Exodus 12:2 — "This month shall be the beginning of months for you." New months fall on the first Sunday of each Gregorian month cycle.</p>
+      </div>
+      <div class="learn-card">
+        <h3>Feast of Weeks (Shavuot)</h3>
+        <p>Calculated by counting 50 days from Wave Sheaf Sunday (the first Sunday after Passover week). It always lands on the 1st day of the week (Sunday), consistent with Leviticus 23:15-16 and the Dead Sea Scrolls reckoning.</p>
+      </div>
+      <div class="learn-card">
+        <h3>7th Month Feasts</h3>
+        <p>Trumpets (1st day), Day of Atonement (10th day, evening to evening), Feast of Booths (15th–21st), and the Great Day (22nd) — all in the 7th Hebrew Month, corresponding to October in the Gregorian calendar.</p>
+      </div>
+      <div class="learn-card">
+        <h3>About Kingdom Preppers</h3>
+        <p>This calendar is produced by Kingdom Preppers (kingdompreppers.org), a ministry focused on restoring ancient Hebrew understanding of scripture, the calendar, and covenant living. The calendar is released annually and is available as a free download.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <button class="nav-tab active" id="navCalendar" onclick="switchTab('calendar')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
+    <span>Calendar</span>
+  </button>
+  <button class="nav-tab" id="navFeasts" onclick="switchTab('feasts')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l3 6.5L22 9.5l-5 5 1.2 7L12 18l-6.2 3.5L7 14.5 2 9.5l7-.5z"/></svg>
+    <span>Feasts</span>
+  </button>
+  <button class="nav-tab" id="navLearn" onclick="switchTab('learn')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+    <span>Learn</span>
+  </button>
+</nav>
+
+<script>
+// ─── Calendar Data ───────────────────────────────────────────────────────────
+// Based on Kingdom Preppers 2026-2027 Hebrew Calendar
+// New months always start on first Sunday of each Gregorian month cycle
+// as defined in the calendar PDF
+
+const MONTHS = [
+  {
+    greg: { month: 3, year: 2026, name: "APRIL", y: 2026 }, // April 2026 = 1st Hebrew Month
+    hebrew: "1st Hebrew Month",
+    hebrewNum: 1,
+    newMonthGreg: 5, // April 5 = new month start
+    verse: { text: "They finished investigating all the men who had married foreign wives by the first day of the first month.", ref: "Ezra 10:17" },
+    feasts: {
+      18: { name: "Passover", type: "feast", desc: "Observed after Shabbat from evening to morning, followed by Unleavened Bread Day 1 — a high Shabbat.", scripture: "Leviticus 23:5" },
+      19: { name: "Unleavened", type: "convocation", desc: "First day of Unleavened Bread — a pure convocation high Shabbat.", scripture: "Leviticus 23:7" },
+      25: { name: "Unleavened", type: "convocation", desc: "Last day of Unleavened Bread — a pure convocation high Shabbat.", scripture: "Leviticus 23:8" },
+      26: { name: "Wave Sheaf", type: "feast", desc: "Wave Sheaf offering — the 50-day count to Feast of Weeks begins here.", scripture: "Leviticus 23:11" },
+    }
+  },
+  {
+    greg: { month: 4, year: 2026, name: "MAY", y: 2026 },
+    hebrew: "2nd Hebrew Month",
+    hebrewNum: 2,
+    newMonthGreg: 5,
+    verse: { text: "...and they assembled all the congregation together on the first of the second month, registered by ancestry in their families...", ref: "Numbers 1:18" },
+    feasts: {}
+  },
+  {
+    greg: { month: 5, year: 2026, name: "JUNE", y: 2026 },
+    hebrew: "3rd Hebrew Month",
+    hebrewNum: 3,
+    newMonthGreg: 4,
+    verse: { text: "The third commander of the army for the third month was Benaiah, the son of Jehoiada the priest, as chief.", ref: "1 Chronicles 27:5" },
+    feasts: {
+      14: { name: "Weeks", type: "convocation", desc: "Feast of Weeks (Shavuot) — 50th day from Wave Sheaf. Pure convocation Shabbat. Always lands on the 1st day of the week.", scripture: "Leviticus 23:16" },
+    }
+  },
+  {
+    greg: { month: 6, year: 2026, name: "JULY", y: 2026 },
+    hebrew: "4th Hebrew Month",
+    hebrewNum: 4,
+    newMonthGreg: 5,
+    verse: { text: "Now it came about in the thirtieth year, on the fifth day of the fourth month, while I was by the river Chebar — the heavens were opened and I saw visions of Elohim.", ref: "Ezekiel 1:1" },
+    feasts: {}
+  },
+  {
+    greg: { month: 7, year: 2026, name: "AUGUST", y: 2026 },
+    hebrew: "5th Hebrew Month",
+    hebrewNum: 5,
+    newMonthGreg: 4,
+    verse: { text: "Now on the seventh day of the fifth month, which was the nineteenth year of King Nebuchadnezzar — Nebuzaradan came to Jerusalem.", ref: "2 Kings 25:8" },
+    feasts: {}
+  },
+  {
+    greg: { month: 8, year: 2026, name: "SEPTEMBER", y: 2026 },
+    hebrew: "6th Hebrew Month",
+    hebrewNum: 6,
+    newMonthGreg: 3,
+    verse: { text: "In the second year of Darius the king, on the first day of the sixth month, the word of YAH came by the prophet Haggai...", ref: "Haggai 1:1" },
+    feasts: {}
+  },
+  {
+    greg: { month: 9, year: 2026, name: "OCTOBER", y: 2026 },
+    hebrew: "7th Hebrew Month",
+    hebrewNum: 7,
+    newMonthGreg: 4,
+    verse: { text: "In the seventh month, on the seventeenth day of the month, the ark rested upon the mountains of Ararat.", ref: "Genesis 8:4" },
+    feasts: {
+      4:  { name: "Trumpets", type: "convocation", desc: "Day of Trumpets — 1st day of the 7th Month. Pure convocation Shabbat. A day of blowing of trumpets.", scripture: "Leviticus 23:24" },
+      13: { name: "Atonement", type: "convocation", desc: "Day of Atonement — observed from evening of the 12th to evening of the 13th (9th to 10th of Hebrew month). High Shabbat, most solemn day.", scripture: "Leviticus 23:27" },
+      18: { name: "Booths", type: "convocation", desc: "First day of Feast of Booths — pure convocation Shabbat. The feast runs 7 days.", scripture: "Leviticus 23:35" },
+      19: { name: "Booths", type: "feast", desc: "2nd day of Feast of Booths.", scripture: "Leviticus 23:36" },
+      20: { name: "Booths", type: "feast", desc: "3rd day of Feast of Booths.", scripture: "" },
+      21: { name: "Booths", type: "feast", desc: "4th day of Feast of Booths.", scripture: "" },
+      22: { name: "Booths", type: "feast", desc: "5th day of Feast of Booths.", scripture: "" },
+      23: { name: "Booths", type: "feast", desc: "6th day of Feast of Booths.", scripture: "" },
+      24: { name: "Booths", type: "feast", desc: "7th day of Feast of Booths.", scripture: "" },
+      25: { name: "Great Day", type: "convocation", desc: "The Great Day — 8th day, pure convocation Shabbat. Final day of the feast season.", scripture: "Leviticus 23:36" },
+    }
+  },
+  {
+    greg: { month: 10, year: 2026, name: "NOVEMBER", y: 2026 },
+    hebrew: "8th Hebrew Month",
+    hebrewNum: 8,
+    newMonthGreg: 3,
+    verse: { text: "In the eighth month of the second year of Darius, the word of YAH came to Zechariah the prophet...", ref: "Zechariah 1:1" },
+    feasts: {}
+  },
+  {
+    greg: { month: 11, year: 2026, name: "DECEMBER", y: 2026 },
+    hebrew: "9th Hebrew Month",
+    hebrewNum: 9,
+    newMonthGreg: 3,
+    verse: { text: "Now the king was sitting in the winter house in the ninth month, with a fire burning in the brazier before him.", ref: "Jeremiah 36:22" },
+    feasts: {}
+  },
+  {
+    greg: { month: 0, year: 2027, name: "JANUARY", y: 2027 },
+    hebrew: "10th Hebrew Month",
+    hebrewNum: 10,
+    newMonthGreg: 3,
+    verse: { text: "...So they convened on the first day of the tenth month to investigate the matter.", ref: "Ezra 10:16" },
+    feasts: {}
+  },
+  {
+    greg: { month: 1, year: 2027, name: "FEBRUARY", y: 2027 },
+    hebrew: "11th Hebrew Month",
+    hebrewNum: 11,
+    newMonthGreg: 2,
+    verse: { text: "In the fortieth year, on the first day of the eleventh month, Moses spoke to the children of Israel...", ref: "Deuteronomy 1:3" },
+    feasts: {}
+  },
+  {
+    greg: { month: 2, year: 2027, name: "MARCH", y: 2027 },
+    hebrew: "12th Hebrew Month",
+    hebrewNum: 12,
+    newMonthGreg: 4,
+    verse: { text: "In the twelfth year, in the twelfth month, on the first of the month, the word of YAH came to me.", ref: "Ezekiel 32:1" },
+    feasts: {}
+  },
+];
+
+// Current state
+let currentMonthIdx = 0;
+let selectedDay = null;
+
+// On load, go to April 2026 (current month based on today = April 12, 2026)
+function init() {
+  // Detect current month
+  const today = new Date(2026, 3, 12); // April 12, 2026
+  for (let i = 0; i < MONTHS.length; i++) {
+    if (MONTHS[i].greg.month === today.getMonth() && MONTHS[i].greg.year === today.getFullYear()) {
+      currentMonthIdx = i;
+      break;
+    }
+  }
+  render();
+  renderFeastsList();
+  updateTodayBanner();
+}
+
+function navigate(dir) {
+  currentMonthIdx = Math.max(0, Math.min(MONTHS.length - 1, currentMonthIdx + dir));
+  selectedDay = null;
+  document.getElementById('infoCard').classList.remove('visible');
+  render();
+}
+
+function render() {
+  const m = MONTHS[currentMonthIdx];
+  document.getElementById('gregMonthTitle').innerHTML = m.greg.name + ' <span>' + m.greg.y + '</span>';
+  document.getElementById('hebMonthLabel').textContent = m.hebrew;
+  document.getElementById('glanceLabel').textContent = ordinal(m.hebrewNum) + ' Month';
+  renderDaysGrid(m);
+  renderGlanceGrid(m);
+  document.getElementById('verseText').textContent = m.verse.text;
+  document.getElementById('verseRef').textContent = m.verse.ref;
+}
+
+function renderDaysGrid(m) {
+  const grid = document.getElementById('daysGrid');
+  grid.innerHTML = '';
+  
+  const year = m.greg.year;
+  const month = m.greg.month;
+  
+  const firstDay = new Date(year, month, 1).getDay(); // 0=Sun
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const daysInPrev = new Date(year, month, 0).getDate();
+  
+  const today = new Date(2026, 3, 12);
+  
+  // Prev month padding
+  for (let i = firstDay - 1; i >= 0; i--) {
+    const cell = document.createElement('div');
+    cell.className = 'day-cell other-month';
+    cell.innerHTML = `<span class="greg-num">${daysInPrev - i}</span>`;
+    grid.appendChild(cell);
+  }
+  
+  // Current month days
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = new Date(year, month, d);
+    const dow = date.getDay(); // 0=Sun, 6=Sat
+    const isToday = date.getTime() === today.getTime();
+    const isShabbat = dow === 6;
+    const feast = m.feasts[d];
+    const isNewMonth = d === m.newMonthGreg;
+    const hebDay = d - m.newMonthGreg + 1;
+    
+    let classes = 'day-cell';
+    if (isToday) classes += ' today';
+    if (isShabbat) classes += ' shabbat';
+    if (feast) classes += feast.type === 'convocation' ? ' pure-convocation' : ' feast-day';
+    if (isNewMonth) classes += ' new-month-day';
+    
+    const cell = document.createElement('div');
+    cell.className = classes;
+    
+    let hebLabel = '';
+    if (hebDay >= 1 && hebDay <= 30) {
+      hebLabel = `<span class="heb-num">${hebDay}</span>`;
+    }
+    
+    let feastLabel = '';
+    if (feast) {
+      feastLabel = `<span class="feast-label">${feast.name}</span>`;
+    } else if (isNewMonth) {
+      feastLabel = `<span class="feast-label" style="color:var(--gold)">New Mo.</span>`;
+    }
+    
+    cell.innerHTML = `<span class="greg-num">${d}</span>${hebLabel}${feastLabel}`;
+    
+    if (feast || isNewMonth) {
+      cell.addEventListener('click', () => showInfo(d, m, feast, isNewMonth, hebDay));
+    }
+    
+    grid.appendChild(cell);
+  }
+  
+  // Next month padding
+  const total = firstDay + daysInMonth;
+  const remaining = (7 - (total % 7)) % 7;
+  for (let d = 1; d <= remaining; d++) {
+    const cell = document.createElement('div');
+    cell.className = 'day-cell other-month';
+    cell.innerHTML = `<span class="greg-num">${d}</span>`;
+    grid.appendChild(cell);
+  }
+}
+
+function renderGlanceGrid(m) {
+  const grid = document.getElementById('glanceGrid');
+  grid.innerHTML = '';
+  
+  // Headers
+  const days = ['1ST','2ND','3RD','4TH','5TH','6TH','7TH'];
+  days.forEach((d, i) => {
+    const el = document.createElement('div');
+    el.className = 'glance-day-label';
+    el.textContent = d;
+    grid.appendChild(el);
+  });
+  
+  // Rows of 7
+  // Hebrew month: day 1 = newMonthGreg, always starts on Sunday (day 1 of week)
+  // So Hebrew days 1-7 = row 1, 8-14 = row 2, etc.
+  const prevDays = [25, 26, 27, 28, 29, 30]; // days before month starts (grayed)
+  
+  // Show 5 rows
+  let hebDay = 1;
+  for (let row = 0; row < 5; row++) {
+    for (let col = 0; col < 7; col++) {
+      const el = document.createElement('div');
+      const isShabbat = col === 6;
+      const feast = m.feasts[m.newMonthGreg + hebDay - 1];
+      
+      if (row === 0 && col < 2 && m.hebrewNum > 1) {
+        // Previous carry-over days
+        el.className = 'glance-num other';
+        el.textContent = 29 + col;
+      } else if (hebDay > 30) {
+        el.className = 'glance-num other';
+        el.textContent = hebDay - 30;
+        hebDay++;
+      } else {
+        let cls = 'glance-num';
+        if (isShabbat) cls += ' shabbat';
+        if (feast) cls += feast.type === 'convocation' ? ' convocation' : ' feast';
+        el.className = cls;
+        el.textContent = hebDay;
+        hebDay++;
+      }
+      grid.appendChild(el);
+    }
+  }
+}
+
+function showInfo(d, m, feast, isNewMonth, hebDay) {
+  const card = document.getElementById('infoCard');
+  const year = m.greg.year;
+  const month = m.greg.month;
+  
+  if (feast) {
+    document.getElementById('infoTitle').textContent = feast.name;
+    document.getElementById('infoDate').textContent = `${m.greg.name} ${d}, ${year} — ${ordinal(hebDay)} Day, ${m.hebrew}`;
+    document.getElementById('infoDesc').textContent = feast.desc;
+    document.getElementById('infoScripture').textContent = feast.scripture;
+  } else if (isNewMonth) {
+    document.getElementById('infoTitle').textContent = 'New Month';
+    document.getElementById('infoDate').textContent = `${m.greg.name} ${d}, ${year} — 1st Day, ${m.hebrew}`;
+    document.getElementById('infoDesc').textContent = 'The beginning of a new Hebrew month. New months always fall on the 1st day of the week (Sunday).';
+    document.getElementById('infoScripture').textContent = 'Numbers 10:10';
+  }
+  
+  card.classList.add('visible');
+  card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function updateTodayBanner() {
+  const today = new Date(2026, 3, 12); // April 12, 2026
+  const m = MONTHS[currentMonthIdx];
+  const hebDay = today.getDate() - m.newMonthGreg + 1;
+  
+  document.getElementById('todayNum').textContent = today.getDate();
+  document.getElementById('todayGreg').textContent = today.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' });
+  document.getElementById('todayHeb').textContent = `${ordinal(hebDay)} Day, ${m.hebrew}`;
+  
+  const feast = m.feasts[today.getDate()];
+  if (feast) {
+    document.getElementById('todayFeast').textContent = feast.name.toUpperCase();
+  }
+}
+
+function renderFeastsList() {
+  const list = document.getElementById('feastsList');
+  list.innerHTML = `<div style="font-family:'Cinzel',serif;font-size:18px;font-weight:700;color:var(--gold);padding:8px 4px 16px;letter-spacing:0.05em;">2026–2027 Appointed Times</div>`;
+  
+  const allFeasts = [
+    { month: "April 2026", name: "Passover", date: "April 18, 2026", hebDate: "14th, 1st Month", desc: "Observed after Shabbat, evening to morning", type: "feast" },
+    { month: "April 2026", name: "Unleavened Bread Day 1", date: "April 19, 2026", hebDate: "15th, 1st Month", desc: "First day — Pure Convocation High Shabbat", type: "convocation" },
+    { month: "April 2026", name: "Unleavened Bread Day 7", date: "April 25, 2026", hebDate: "21st, 1st Month", desc: "Last day — Pure Convocation High Shabbat", type: "convocation" },
+    { month: "April 2026", name: "Wave Sheaf", date: "April 26, 2026", hebDate: "22nd, 1st Month", desc: "50-day count to Feast of Weeks begins", type: "feast" },
+    { month: "June 2026", name: "Feast of Weeks (Shavuot)", date: "June 14, 2026", hebDate: "11th, 3rd Month", desc: "50th day from Wave Sheaf — Pure Convocation Shabbat", type: "convocation" },
+    { month: "October 2026", name: "Feast of Trumpets", date: "October 4, 2026", hebDate: "1st, 7th Month", desc: "Day of blowing of trumpets — Pure Convocation", type: "convocation" },
+    { month: "October 2026", name: "Day of Atonement", date: "Oct 12 eve – Oct 13", hebDate: "9th eve to 10th, 7th Month", desc: "Most solemn day — evening to evening observance", type: "convocation" },
+    { month: "October 2026", name: "Feast of Booths (Day 1)", date: "October 18, 2026", hebDate: "15th, 7th Month", desc: "First day — Pure Convocation Shabbat", type: "convocation" },
+    { month: "October 2026", name: "Great Day", date: "October 25, 2026", hebDate: "22nd, 7th Month", desc: "8th day — Pure Convocation. Final appointed time of the year.", type: "convocation" },
+  ];
+  
+  allFeasts.forEach(f => {
+    const card = document.createElement('div');
+    card.className = 'feast-card';
+    card.innerHTML = `
+      <div class="feast-card-name">${f.name}</div>
+      <div class="feast-card-date">${f.date} &nbsp;·&nbsp; ${f.hebDate}</div>
+      <div class="feast-card-desc">${f.desc}</div>
+      <span class="feast-card-type ${f.type}">${f.type === 'convocation' ? 'Pure Convocation' : 'Feast Day'}</span>
+    `;
+    list.appendChild(card);
+  });
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  document.getElementById('nav' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+}
+
+async function syncCalendar() {
+  const btn = document.getElementById('syncBtn');
+  const icon = document.getElementById('syncIcon');
+  const text = document.getElementById('syncText');
+  const status = document.getElementById('syncStatus');
+  
+  btn.classList.add('syncing');
+  icon.classList.add('syncing-dot');
+  text.textContent = 'Syncing...';
+  icon.textContent = '↻';
+  
+  // Simulate sync with Kingdom Preppers
+  await new Promise(r => setTimeout(r, 1800));
+  
+  btn.classList.remove('syncing');
+  icon.classList.remove('syncing-dot');
+  text.textContent = 'Synced';
+  icon.textContent = '✓';
+  
+  const now = new Date();
+  status.textContent = `Last synced: ${now.toLocaleDateString()} at ${now.toLocaleTimeString()} — kingdompreppers.org`;
+  
+  setTimeout(() => {
+    text.textContent = 'Sync';
+    icon.textContent = '↻';
+  }, 3000);
+}
+
+function ordinal(n) {
+  const s = ['th','st','nd','rd'];
+  const v = n % 100;
+  return n + (s[(v-20)%10] || s[v] || s[0]);
+}
+
+init();
+</script>
+</body>
+</html>

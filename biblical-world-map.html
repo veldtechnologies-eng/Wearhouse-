@@ -1,0 +1,1243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Sons of Noah — Biblical World Map</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    background: #050E1A;
+    color: #C5B89A;
+    font-family: Georgia, 'Times New Roman', serif;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    touch-action: none;
+  }
+
+  /* HEADER */
+  #header {
+    background: linear-gradient(180deg, #0A1628 0%, #050E1A 100%);
+    border-bottom: 1px solid #1E3A5F;
+    padding: 10px 14px 8px;
+    flex-shrink: 0;
+    text-align: center;
+  }
+  #header .sub { font-size: 10px; letter-spacing: 3px; color: #C8841A; text-transform: uppercase; margin-bottom: 2px; }
+  #header h1 {
+    font-size: clamp(14px, 4vw, 22px);
+    background: linear-gradient(135deg, #FFD700, #C8841A, #FF6B00);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.2;
+  }
+
+  /* TAB BAR */
+  #tabs {
+    display: flex;
+    border-bottom: 1px solid #1E3A5F;
+    flex-shrink: 0;
+    background: #07101E;
+  }
+  .tab {
+    flex: 1;
+    padding: 9px 4px;
+    text-align: center;
+    font-size: 11px;
+    color: #546E7A;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    user-select: none;
+  }
+  .tab.active { color: #FFD700; border-bottom-color: #FFD700; }
+
+  /* MAP CONTAINER */
+  #map-container {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    display: none;
+    background: #050E1A;
+  }
+  #map-container.active { display: block; }
+
+  #svg-wrap {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    touch-action: none;
+  }
+
+  #map-svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+    touch-action: none;
+  }
+
+  /* MAP CONTROLS */
+  #map-controls {
+    position: absolute;
+    bottom: 14px;
+    right: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    z-index: 10;
+  }
+  .map-btn {
+    width: 38px; height: 38px;
+    background: rgba(10,22,40,0.92);
+    border: 1px solid #1E3A5F;
+    border-radius: 8px;
+    color: #90CAF9;
+    font-size: 20px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    touch-action: manipulation;
+    user-select: none;
+  }
+
+  /* FILTER BAR */
+  #filter-bar {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    display: flex;
+    gap: 6px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    z-index: 10;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  #filter-bar::-webkit-scrollbar { display: none; }
+
+  .filter-chip {
+    flex-shrink: 0;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    touch-action: manipulation;
+    user-select: none;
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+
+  /* SCROLL PANELS */
+  .scroll-panel {
+    flex: 1;
+    overflow-y: auto;
+    display: none;
+    padding: 12px;
+    gap: 10px;
+    flex-direction: column;
+    -webkit-overflow-scrolling: touch;
+  }
+  .scroll-panel.active { display: flex; }
+
+  /* CARDS */
+  .card {
+    background: #0A1628;
+    border: 1px solid #1E3A5F;
+    border-radius: 12px;
+    padding: 14px 16px;
+    transition: border-color 0.2s;
+  }
+  .card.shem { border-left: 3px solid #C8841A; }
+  .card.ham { border-left: 3px solid #2E7D32; }
+  .card.japheth { border-left: 3px solid #1565C0; }
+
+  .card-title { font-size: 16px; font-weight: bold; margin-bottom: 4px; }
+  .card-meaning { font-size: 12px; font-style: italic; color: #90A4AE; margin-bottom: 6px; }
+  .card-verse { font-size: 11px; color: #A5D6A7; margin-bottom: 8px; }
+  .card-body { font-size: 13px; line-height: 1.7; color: #D7CCC8; }
+
+  .nation-list { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+  .nation-item {
+    background: #07101E;
+    border: 1px solid #1A3050;
+    border-radius: 8px;
+    padding: 10px 12px;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .nation-item:active { background: #0D1F3C; }
+  .nation-name { font-size: 14px; font-weight: bold; margin-bottom: 2px; }
+  .nation-people { font-size: 11px; color: #90CAF9; margin-bottom: 4px; }
+  .nation-verse { font-size: 11px; color: #A5D6A7; margin-bottom: 4px; }
+  .nation-note { font-size: 12px; color: #B0BEC5; line-height: 1.6; }
+
+  /* SITES LIST */
+  .era-header {
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 6px 0 4px;
+    border-bottom: 1px solid #1E3A5F;
+    margin-top: 4px;
+  }
+  .site-item {
+    background: #07101E;
+    border: 1px solid #1A3050;
+    border-radius: 8px;
+    padding: 10px 12px;
+    cursor: pointer;
+    touch-action: manipulation;
+    border-left: 3px solid transparent;
+  }
+  .site-name { font-size: 14px; font-weight: bold; margin-bottom: 2px; }
+  .site-verse { font-size: 11px; color: #A5D6A7; margin-bottom: 4px; }
+  .site-note { font-size: 12px; color: #B0BEC5; line-height: 1.6; }
+
+  /* SCRIPTURE TAB */
+  .scripture-card {
+    background: #0A1628;
+    border: 1px solid #1E3A5F;
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .scripture-ref { font-size: 13px; color: #FFD700; font-weight: bold; margin-bottom: 6px; }
+  .scripture-text { font-size: 13px; color: #D7CCC8; line-height: 1.7; font-style: italic; }
+  .scripture-note { font-size: 12px; color: #90A4AE; margin-top: 6px; line-height: 1.6; }
+
+  /* MODAL */
+  #modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 1000;
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+  #modal-overlay.open { display: flex; }
+  #modal-box {
+    background: #0D1B2E;
+    border: 1px solid #2A4A7F;
+    border-radius: 20px 20px 0 0;
+    padding: 24px 20px 32px;
+    width: 100%;
+    max-width: 600px;
+    max-height: 75vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  #modal-title { font-size: 20px; font-weight: bold; margin-bottom: 6px; }
+  #modal-sub { font-size: 12px; color: #90CAF9; margin-bottom: 8px; }
+  #modal-verse { font-size: 12px; color: #A5D6A7; margin-bottom: 12px; }
+  #modal-body { font-size: 14px; color: #D7CCC8; line-height: 1.75; }
+  #modal-close {
+    position: absolute; top: 16px; right: 20px;
+    font-size: 24px; color: #546E7A; cursor: pointer;
+    touch-action: manipulation;
+  }
+  #modal-box { position: relative; }
+
+  .pull-bar {
+    width: 40px; height: 4px;
+    background: #1E3A5F;
+    border-radius: 2px;
+    margin: 0 auto 16px;
+  }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <div class="sub">Table of Nations — Genesis 10 · Deuteronomy 32:8</div>
+  <h1>Sons of Noah &amp; Hebrew Sacred Sites</h1>
+</div>
+
+<div id="tabs">
+  <div class="tab active" onclick="showTab('map')">🗺 Map</div>
+  <div class="tab" onclick="showTab('nations')">⚔ Nations</div>
+  <div class="tab" onclick="showTab('sites')">✡ Sites</div>
+  <div class="tab" onclick="showTab('scripture')">📜 Scripture</div>
+</div>
+
+<!-- ═══ MAP TAB ═══ -->
+<div id="map-container" class="active">
+  <div id="filter-bar">
+    <div class="filter-chip" id="chip-all" style="background:#1E3A5F;color:#90CAF9;border-color:#2A5080;" onclick="setFilter('all')">All</div>
+    <div class="filter-chip" id="chip-SHEM" style="background:#3E2A0A;color:#C8841A;border-color:#C8841A;" onclick="setFilter('SHEM')">Shem</div>
+    <div class="filter-chip" id="chip-HAM" style="background:#0A2E0D;color:#4CAF50;border-color:#2E7D32;" onclick="setFilter('HAM')">Ham</div>
+    <div class="filter-chip" id="chip-JAPHETH" style="background:#0A1E3E;color:#64B5F6;border-color:#1565C0;" onclick="setFilter('JAPHETH')">Japheth</div>
+    <div class="filter-chip" id="chip-sites" style="background:#2A1A2E;color:#F06292;border-color:#E91E63;" onclick="setFilter('sites')">Heb. Sites</div>
+  </div>
+
+  <div id="svg-wrap">
+    <svg id="map-svg" viewBox="0 0 900 450" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <filter id="glow-gold">
+          <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+          <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="glow-green">
+          <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+          <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+
+      <!-- Ocean -->
+      <rect width="900" height="450" fill="#071428"/>
+
+      <!-- Grid -->
+      <line x1="0" y1="90" x2="900" y2="90" stroke="#0D2240" stroke-width="0.5"/>
+      <line x1="0" y1="150" x2="900" y2="150" stroke="#0D2240" stroke-width="0.5"/>
+      <line x1="0" y1="225" x2="900" y2="225" stroke="#0D2240" stroke-width="0.5" stroke-dasharray="4,4"/>
+      <line x1="0" y1="300" x2="900" y2="300" stroke="#0D2240" stroke-width="0.5"/>
+      <line x1="0" y1="360" x2="900" y2="360" stroke="#0D2240" stroke-width="0.5"/>
+      <line x1="225" y1="0" x2="225" y2="450" stroke="#0D2240" stroke-width="0.5"/>
+      <line x1="450" y1="0" x2="450" y2="450" stroke="#0D2240" stroke-width="0.5"/>
+      <line x1="675" y1="0" x2="675" y2="450" stroke="#0D2240" stroke-width="0.5"/>
+      <text x="449" y="232" text-anchor="middle" font-size="7" fill="#0D3060" font-family="Georgia">Equator</text>
+      <text x="449" y="153" text-anchor="middle" font-size="7" fill="#0D3060" font-family="Georgia">30°N</text>
+
+      <!-- LANDMASSES -->
+      <!-- Europe main -->
+      <path d="M255 95 L280 85 L310 78 L340 74 L368 76 L385 84 L390 98 L378 110 L362 122 L345 132 L330 128 L315 120 L295 114 L272 106 Z" fill="#1A3A28" stroke="#2D5A40" stroke-width="0.8"/>
+      <!-- Iberian Peninsula -->
+      <path d="M255 95 L268 105 L272 118 L260 128 L248 120 L244 108 Z" fill="#1A3A28" stroke="#2D5A40" stroke-width="0.8"/>
+      <!-- Italy -->
+      <path d="M340 128 L348 138 L344 155 L336 162 L330 155 L332 140 Z" fill="#1A3A28" stroke="#2D5A40" stroke-width="0.8"/>
+      <!-- Greece -->
+      <path d="M362 122 L374 130 L378 142 L370 148 L362 140 L358 130 Z" fill="#1A3A28" stroke="#2D5A40" stroke-width="0.8"/>
+      <!-- Scandinavia -->
+      <path d="M308 62 L328 50 L348 55 L352 70 L340 76 L320 74 L306 70 Z" fill="#1A3A28" stroke="#2D5A40" stroke-width="0.8"/>
+      <!-- British Isles -->
+      <path d="M250 88 L262 82 L268 90 L260 100 L248 96 Z" fill="#1A3A28" stroke="#2D5A40" stroke-width="0.8"/>
+      <!-- Ireland -->
+      <path d="M240 90 L248 86 L250 96 L242 100 Z" fill="#1A3A28" stroke="#2D5A40" stroke-width="0.8"/>
+      <!-- Africa -->
+      <path d="M272 148 L340 142 L375 150 L390 168 L398 205 L395 245 L382 278 L360 305 L330 316 L305 310 L282 295 L268 268 L262 232 L264 195 L268 170 Z" fill="#1A3A28" stroke="#2D5A40" stroke-width="0.8"/>
+      <!-- Horn of Africa -->
+      <path d="M378 200 L408 195 L418 208 L412 228 L388 232 L372 218 Z" fill="#1A3A28" stroke="#2D5A40" stroke-width="0.8"/>
+      <!-- Madagascar -->
+      <path d="M385 248 L396 242 L402 260 L395 275 L383 268 Z" fill="#1A3A28" stroke="#2D5A40" stroke-width="0.8"/>
+      <!-- Sinai/Middle East -->
+      <path d="M368 132 L405 128 L422 138 L418 155 L400 165 L385 162 L372 150 Z" fill="#1A3A28" stroke="#2D5A40" stroke-width="0.8"/>
+      <!-- Arabia -->
+      <path d="M390 155 L428 150 L462 158 L475 178 L468 205 L448 220 L420 222 L400 210 L390 188 Z" fill="#1A3A28" stroke="#2D5A40" stroke-width="0.8"/>
+      <!-- Turkey/Anatolia -->
+      <path d="M350 110 L395 106 L415 112 L420 125 L408 135 L385 138 L360 132 L348 122 Z" fill="#1A3A28" stroke="#2D5A40" stroke-width="0.8"/>
+      <!-- Caucasus -->
+      <path d="M388 98 L418 92 L428 100 L422 110 L400 112 L385 108 Z" fill="#1A3A28" stroke="#2D5A40" stroke-width="0.8"/>
+      <!-- Mesopotamia -->
+      <path d="M405 128 L445 122 L462 132 L460 148 L442 158 L420 155 L408 145 Z" fill="#1A3A28" stroke="#2D5A40" stroke-width="0.8"/>
+      <!-- Iran/Persia -->
+      <path d="M420 110 L468 102 L495 112 L500 132 L490 152 L462 158 L442 148 L425 135 Z" fill="#1A3A28" stroke="#2D5A40" stroke-width="0.8"/>
+      <!-- Central Asia -->
+      <path d="M468 80 L545 72 L580 82 L582 105 L555 118 L510 122 L475 112 L462 98 Z" fill="#1A3A28" stroke="#2D5A40" stroke-width="0.8"/>
+      <!-- Russia / N. Asia -->
+      <path d="M325 58 L440 42 L560 38 L670 44 L720 60 L720 80 L680 82 L570 78 L440 72 L340 72 L322 66 Z" fill="#1A3A28" stroke="#2D5A40" stroke-width="0.8"/>
+      <!-- India -->
+      <path d="M492 122 L538 116 L558 130 L562 168 L548 200 L520 215 L505 204 L494 178 L488 148 Z" fill="#1A3A28" stroke="#2D5A40" stroke-width="0.8"/>
+      <!-- SE Asia -->
+      <path d="M562 118 L615 112 L635 128 L628 148 L602 158 L575 148 L560 132 Z" fill="#1A3A28" stroke="#2D5A40" stroke-width="0.8"/>
+      <!-- China -->
+      <path d="M572 80 L648 68 L688 78 L700 102 L688 125 L658 132 L622 130 L588 120 L564 105 Z" fill="#1A3A28" stroke="#2D5A40" stroke-width="0.8"/>
+      <!-- Korea/Japan -->
+      <path d="M698 88 L718 82 L724 94 L710 102 L698 96 Z" fill="#1A3A28" stroke="#2D5A40" stroke-width="0.8"/>
+      <!-- North America -->
+      <path d="M58 62 L135 54 L182 62 L202 78 L196 112 L175 142 L148 165 L118 172 L88 166 L66 148 L52 122 L48 95 Z" fill="#1A3A28" stroke="#2D5A40" stroke-width="0.8"/>
+      <!-- Central America -->
+      <path d="M148 165 L170 162 L176 180 L158 192 L140 184 Z" fill="#1A3A28" stroke="#2D5A40" stroke-width="0.8"/>
+      <!-- South America -->
+      <path d="M168 188 L205 184 L232 198 L248 228 L242 272 L220 308 L192 318 L168 308 L152 282 L150 248 L154 218 Z" fill="#1A3A28" stroke="#2D5A40" stroke-width="0.8"/>
+      <!-- Caribbean/Cuba -->
+      <path d="M158 165 L178 163 L180 170 L162 172 Z" fill="#1A3A28" stroke="#2D5A40" stroke-width="0.8"/>
+      <!-- Australia -->
+      <path d="M618 222 L682 216 L710 230 L718 258 L705 284 L665 292 L625 280 L605 258 L608 232 Z" fill="#1A3A28" stroke="#2D5A40" stroke-width="0.8"/>
+      <!-- New Zealand -->
+      <path d="M740 290 L748 285 L752 298 L745 308 L738 300 Z" fill="#1A3A28" stroke="#2D5A40" stroke-width="0.8"/>
+      <!-- Greenland -->
+      <path d="M202 35 L245 28 L268 38 L264 58 L238 68 L202 60 Z" fill="#1A3A28" stroke="#2D5A40" stroke-width="0.8"/>
+      <!-- Iceland -->
+      <path d="M218 68 L235 64 L240 72 L228 78 L216 74 Z" fill="#1A3A28" stroke="#2D5A40" stroke-width="0.8"/>
+
+      <!-- Region overlays -->
+      <!-- SHEM territory -->
+      <path id="region-SHEM" d="M370 102 L500 95 L505 145 L468 192 L432 205 L382 190 L358 158 L355 122 Z" fill="#C8841A" opacity="0.10"/>
+      <!-- HAM territory -->
+      <path id="region-HAM" d="M262 142 L400 140 L402 245 L388 298 L330 318 L275 298 L258 228 Z" fill="#2E7D32" opacity="0.10"/>
+      <!-- JAPHETH territory -->
+      <path id="region-JAPHETH" d="M235 60 L590 48 L605 112 L502 130 L392 132 L345 122 L290 126 L235 115 Z" fill="#1565C0" opacity="0.09"/>
+
+      <!-- REGION LABELS -->
+      <text x="165" y="195" font-size="9" fill="#1E5C3A" opacity="0.5" font-style="italic" font-family="Georgia">AMERICAS</text>
+      <text x="292" y="225" font-size="9" fill="#1E5C3A" opacity="0.5" font-style="italic" font-family="Georgia">AFRICA</text>
+      <text x="285" y="100" font-size="9" fill="#1E5C3A" opacity="0.5" font-style="italic" font-family="Georgia">EUROPE</text>
+      <text x="470" y="178" font-size="8" fill="#1E5C3A" opacity="0.5" font-style="italic" font-family="Georgia">ARABIA</text>
+      <text x="455" y="130" font-size="8" fill="#1E5C3A" opacity="0.5" font-style="italic" font-family="Georgia">MESOPOTAMIA</text>
+      <text x="595" y="100" font-size="8" fill="#1E5C3A" opacity="0.5" font-style="italic" font-family="Georgia">CHINA</text>
+      <text x="640" y="255" font-size="8" fill="#1E5C3A" opacity="0.5" font-style="italic" font-family="Georgia">AUSTRALIA</text>
+      <text x="480" y="108" font-size="8" fill="#1E5C3A" opacity="0.4" font-style="italic" font-family="Georgia">PERSIA/MEDIA</text>
+
+      <!-- ═══ NATION MARKERS (Sons of Noah) ═══ -->
+      <!-- SHEM nations (orange circles) -->
+      <!-- Elam: lat32,lng48 → x=(48+180)/360*900=570, y=(90-32)/180*450=145 -->
+      <g class="marker nation SHEM" data-id="elam" onclick="openModal(this)">
+        <circle cx="570" cy="145" r="8" fill="#C8841A" stroke="#FFD700" stroke-width="1.5" opacity="0.92"/>
+        <circle cx="570" cy="145" r="14" fill="none" stroke="#FFD700" stroke-width="0.5" opacity="0.35"/>
+        <text x="570" y="135" text-anchor="middle" font-size="7" fill="#FFD700" font-family="Georgia">Elam</text>
+        <text x="570" y="143" text-anchor="middle" font-size="6" fill="#FFF9C4" font-family="Georgia">(Persia)</text>
+      </g>
+      <!-- Asshur/Assyria: lat35.8,lng43.1 → x=557,y=136 -->
+      <g class="marker nation SHEM" data-id="asshur" onclick="openModal(this)">
+        <circle cx="557" cy="136" r="8" fill="#C8841A" stroke="#FFD700" stroke-width="1.5" opacity="0.92"/>
+        <text x="557" y="126" text-anchor="middle" font-size="7" fill="#FFD700" font-family="Georgia">Asshur</text>
+        <text x="557" y="134" text-anchor="middle" font-size="6" fill="#FFF9C4" font-family="Georgia">(Assyria)</text>
+      </g>
+      <!-- Arphaxad/Babylon: lat32.5,lng44.4 → x=561,y=144 -->
+      <g class="marker nation SHEM" data-id="arphaxad" onclick="openModal(this)">
+        <circle cx="561" cy="143" r="8" fill="#C8841A" stroke="#FFD700" stroke-width="1.5" opacity="0.92"/>
+        <text x="561" y="156" text-anchor="middle" font-size="7" fill="#FFD700" font-family="Georgia">Arphaxad</text>
+        <text x="561" y="164" text-anchor="middle" font-size="6" fill="#FFF9C4" font-family="Georgia">(Babylon)</text>
+      </g>
+      <!-- Lud/Lydia: lat38.4,lng27.1 → x=502,y=129 -->
+      <g class="marker nation SHEM" data-id="lud" onclick="openModal(this)">
+        <circle cx="502" cy="129" r="8" fill="#C8841A" stroke="#FFD700" stroke-width="1.5" opacity="0.92"/>
+        <text x="502" y="119" text-anchor="middle" font-size="7" fill="#FFD700" font-family="Georgia">Lud</text>
+        <text x="502" y="127" text-anchor="middle" font-size="6" fill="#FFF9C4" font-family="Georgia">(Lydia)</text>
+      </g>
+      <!-- Aram/Syria: lat35,lng38 → x=545,y=138 -->
+      <g class="marker nation SHEM" data-id="aram" onclick="openModal(this)">
+        <circle cx="545" cy="138" r="8" fill="#C8841A" stroke="#FFD700" stroke-width="1.5" opacity="0.92"/>
+        <text x="545" y="128" text-anchor="middle" font-size="7" fill="#FFD700" font-family="Georgia">Aram</text>
+        <text x="545" y="136" text-anchor="middle" font-size="6" fill="#FFF9C4" font-family="Georgia">(Syria)</text>
+      </g>
+      <!-- Sheba/Ophir: lat15,lng44 → x=561,y=188 -->
+      <g class="marker nation SHEM" data-id="sheba_s" onclick="openModal(this)">
+        <circle cx="561" cy="188" r="8" fill="#C8841A" stroke="#FFD700" stroke-width="1.5" opacity="0.92"/>
+        <text x="561" y="178" text-anchor="middle" font-size="7" fill="#FFD700" font-family="Georgia">Sheba</text>
+        <text x="561" y="186" text-anchor="middle" font-size="6" fill="#FFF9C4" font-family="Georgia">(Ophir)</text>
+      </g>
+
+      <!-- HAM nations (green circles) -->
+      <!-- Cush/Ethiopia: lat14,lng35 → x=538,y=190 -->
+      <g class="marker nation HAM" data-id="cush" onclick="openModal(this)">
+        <circle cx="538" cy="190" r="8" fill="#2E7D32" stroke="#66BB6A" stroke-width="1.5" opacity="0.92"/>
+        <text x="538" y="180" text-anchor="middle" font-size="7" fill="#66BB6A" font-family="Georgia">Cush</text>
+        <text x="538" y="188" text-anchor="middle" font-size="6" fill="#C8E6C9" font-family="Georgia">(Ethiopia)</text>
+      </g>
+      <!-- Mizraim/Egypt: lat26.8,lng30.8 → x=527,y=159 -->
+      <g class="marker nation HAM" data-id="mizraim" onclick="openModal(this)">
+        <circle cx="527" cy="159" r="8" fill="#2E7D32" stroke="#66BB6A" stroke-width="1.5" opacity="0.92"/>
+        <text x="527" y="149" text-anchor="middle" font-size="7" fill="#66BB6A" font-family="Georgia">Mizraim</text>
+        <text x="527" y="157" text-anchor="middle" font-size="6" fill="#C8E6C9" font-family="Georgia">(Egypt)</text>
+      </g>
+      <!-- Put/Libya: lat27,lng17 → x=494,y=158 -->
+      <g class="marker nation HAM" data-id="put" onclick="openModal(this)">
+        <circle cx="494" cy="158" r="8" fill="#2E7D32" stroke="#66BB6A" stroke-width="1.5" opacity="0.92"/>
+        <text x="494" y="148" text-anchor="middle" font-size="7" fill="#66BB6A" font-family="Georgia">Put</text>
+        <text x="494" y="156" text-anchor="middle" font-size="6" fill="#C8E6C9" font-family="Georgia">(Libya)</text>
+      </g>
+      <!-- Canaan/Levant: lat31.5,lng35 → x=538,y=148 -->
+      <g class="marker nation HAM" data-id="canaan" onclick="openModal(this)">
+        <circle cx="538" cy="148" r="9" fill="#2E7D32" stroke="#66BB6A" stroke-width="2" opacity="0.95"/>
+        <circle cx="538" cy="148" r="15" fill="none" stroke="#66BB6A" stroke-width="0.8" opacity="0.4"/>
+        <text x="538" y="168" text-anchor="middle" font-size="7.5" fill="#66BB6A" font-family="Georgia" font-weight="bold">Canaan</text>
+        <text x="538" y="176" text-anchor="middle" font-size="6" fill="#C8E6C9" font-family="Georgia">(CURSED — Promised Land)</text>
+      </g>
+      <!-- Nimrod/Babel: lat33,lng44 → x=561,y=141 -->
+      <g class="marker nation HAM" data-id="nimrod_babel" onclick="openModal(this)">
+        <circle cx="556" cy="138" r="7" fill="#BF360C" stroke="#FF6D00" stroke-width="1.5" opacity="0.92"/>
+        <text x="556" y="128" text-anchor="middle" font-size="7" fill="#FF6D00" font-family="Georgia">Nimrod</text>
+        <text x="556" y="136" text-anchor="middle" font-size="6" fill="#FFCCBC" font-family="Georgia">(Babel/Empire)</text>
+      </g>
+
+      <!-- JAPHETH nations (blue circles) -->
+      <!-- Gomer/Cimmerians: lat47,lng34 → x=538,y=108 -->
+      <g class="marker nation JAPHETH" data-id="gomer" onclick="openModal(this)">
+        <circle cx="538" cy="108" r="8" fill="#1565C0" stroke="#42A5F5" stroke-width="1.5" opacity="0.92"/>
+        <text x="538" y="98" text-anchor="middle" font-size="7" fill="#42A5F5" font-family="Georgia">Gomer</text>
+        <text x="538" y="106" text-anchor="middle" font-size="6" fill="#BBDEFB" font-family="Georgia">(Germanic/Celtic)</text>
+      </g>
+      <!-- Magog/Scythia: lat51,lng50 → x=575,y=98 -->
+      <g class="marker nation JAPHETH" data-id="magog" onclick="openModal(this)">
+        <circle cx="575" cy="98" r="8" fill="#1565C0" stroke="#42A5F5" stroke-width="1.5" opacity="0.92"/>
+        <text x="575" y="88" text-anchor="middle" font-size="7" fill="#42A5F5" font-family="Georgia">Magog</text>
+        <text x="575" y="96" text-anchor="middle" font-size="6" fill="#BBDEFB" font-family="Georgia">(Scythians/Rus)</text>
+      </g>
+      <!-- Madai/Media: lat37,lng49 → x=572,y=133 -->
+      <g class="marker nation JAPHETH" data-id="madai" onclick="openModal(this)">
+        <circle cx="572" cy="133" r="8" fill="#1565C0" stroke="#42A5F5" stroke-width="1.5" opacity="0.92"/>
+        <text x="572" y="123" text-anchor="middle" font-size="7" fill="#42A5F5" font-family="Georgia">Madai</text>
+        <text x="572" y="131" text-anchor="middle" font-size="6" fill="#BBDEFB" font-family="Georgia">(Medes/Iran)</text>
+      </g>
+      <!-- Javan/Greece: lat38,lng23 → x=507,y=130 -->
+      <g class="marker nation JAPHETH" data-id="javan" onclick="openModal(this)">
+        <circle cx="507" cy="130" r="8" fill="#1565C0" stroke="#42A5F5" stroke-width="1.5" opacity="0.92"/>
+        <text x="507" y="120" text-anchor="middle" font-size="7" fill="#42A5F5" font-family="Georgia">Javan</text>
+        <text x="507" y="128" text-anchor="middle" font-size="6" fill="#BBDEFB" font-family="Georgia">(Greece)</text>
+      </g>
+      <!-- Tubal: lat41,lng36 → x=542,y=122 -->
+      <g class="marker nation JAPHETH" data-id="tubal" onclick="openModal(this)">
+        <circle cx="542" cy="122" r="7" fill="#1565C0" stroke="#42A5F5" stroke-width="1.5" opacity="0.92"/>
+        <text x="542" y="112" text-anchor="middle" font-size="6.5" fill="#42A5F5" font-family="Georgia">Tubal</text>
+      </g>
+      <!-- Meshech: lat40.5,lng32 → x=530,y=123 -->
+      <g class="marker nation JAPHETH" data-id="meshech" onclick="openModal(this)">
+        <circle cx="530" cy="123" r="7" fill="#1565C0" stroke="#42A5F5" stroke-width="1.5" opacity="0.92"/>
+        <text x="530" y="113" text-anchor="middle" font-size="6.5" fill="#42A5F5" font-family="Georgia">Meshech</text>
+      </g>
+      <!-- Tiras/Thrace: lat43,lng28 → x=522,y=116 -->
+      <g class="marker nation JAPHETH" data-id="tiras" onclick="openModal(this)">
+        <circle cx="522" cy="116" r="7" fill="#1565C0" stroke="#42A5F5" stroke-width="1.5" opacity="0.92"/>
+        <text x="522" y="106" text-anchor="middle" font-size="6.5" fill="#42A5F5" font-family="Georgia">Tiras</text>
+      </g>
+      <!-- Tarshish: lat37,lng-5.9 → x=474,y=133 -->
+      <g class="marker nation JAPHETH" data-id="tarshish" onclick="openModal(this)">
+        <circle cx="474" cy="133" r="8" fill="#1565C0" stroke="#42A5F5" stroke-width="1.5" opacity="0.92"/>
+        <text x="474" y="123" text-anchor="middle" font-size="7" fill="#42A5F5" font-family="Georgia">Tarshish</text>
+        <text x="474" y="131" text-anchor="middle" font-size="6" fill="#BBDEFB" font-family="Georgia">(Iberia/Spain)</text>
+      </g>
+
+      <!-- ═══ HEBREW SITES (diamonds) ═══ -->
+      <!-- Ararat: lat39.7,lng44.3 → x=561,y=125 -->
+      <g class="marker site primordial" data-id="ararat" onclick="openModal(this)">
+        <rect x="555" y="119" width="12" height="12" fill="#9C27B0" stroke="#E1BEE7" stroke-width="1" transform="rotate(45,561,125)" opacity="0.95"/>
+        <text x="561" y="113" text-anchor="middle" font-size="6.5" fill="#E1BEE7" font-family="Georgia">Ararat</text>
+      </g>
+      <!-- Babel: -->
+      <g class="marker site primordial" data-id="babel" onclick="openModal(this)">
+        <rect x="566" y="148" width="11" height="11" fill="#9C27B0" stroke="#E1BEE7" stroke-width="1" transform="rotate(45,571,153)" opacity="0.95"/>
+        <text x="571" y="167" text-anchor="middle" font-size="6" fill="#CE93D8" font-family="Georgia">Tower of Babel</text>
+      </g>
+      <!-- Ur: lat30.96,lng46.1 → x=565,y=150 -->
+      <g class="marker site patriarchs" data-id="ur" onclick="openModal(this)">
+        <rect x="570" y="155" width="11" height="11" fill="#FF9800" stroke="#FFE082" stroke-width="1" transform="rotate(45,575,160)" opacity="0.95"/>
+        <text x="575" y="175" text-anchor="middle" font-size="6.5" fill="#FFE082" font-family="Georgia">Ur</text>
+      </g>
+      <!-- Haran: lat36.8,lng39.1 → x=548,y=133 -->
+      <g class="marker site patriarchs" data-id="haran" onclick="openModal(this)">
+        <rect x="543" y="128" width="11" height="11" fill="#FF9800" stroke="#FFE082" stroke-width="1" transform="rotate(45,548,133)" opacity="0.95"/>
+        <text x="548" y="122" text-anchor="middle" font-size="6.5" fill="#FFE082" font-family="Georgia">Haran</text>
+      </g>
+      <!-- Shechem: lat32.2,lng35.3 → x=539,y=145 -->
+      <g class="marker site patriarchs" data-id="shechem" onclick="openModal(this)">
+        <rect x="534" y="140" width="11" height="11" fill="#FF9800" stroke="#FFE082" stroke-width="1" transform="rotate(45,539,145)" opacity="0.95"/>
+        <text x="534" y="134" text-anchor="middle" font-size="6" fill="#FFE082" font-family="Georgia">Shechem</text>
+      </g>
+      <!-- Hebron: lat31.53,lng35.1 → x=538,y=147 -->
+      <g class="marker site patriarchs" data-id="hebron" onclick="openModal(this)">
+        <rect x="533" y="152" width="11" height="11" fill="#FF9800" stroke="#FFE082" stroke-width="1" transform="rotate(45,538,157)" opacity="0.95"/>
+        <text x="533" y="170" text-anchor="middle" font-size="6.5" fill="#FFE082" font-family="Georgia">Hebron</text>
+      </g>
+      <!-- Jerusalem/Moriah — HOLY (gold ring) lat31.78,lng35.24 → x=539,y=147 -->
+      <g class="marker site monarchy" data-id="jerusalem" onclick="openModal(this)">
+        <circle cx="539" cy="147" r="10" fill="none" stroke="#FFD700" stroke-width="1.5" opacity="0.8"/>
+        <circle cx="539" cy="147" r="5" fill="none" stroke="#FFD700" stroke-width="1" opacity="0.5"/>
+        <rect x="534" y="142" width="10" height="10" fill="#FFD700" stroke="#fff" stroke-width="1" transform="rotate(45,539,147)" opacity="0.97"/>
+        <text x="539" y="135" text-anchor="middle" font-size="7.5" fill="#FFD700" font-family="Georgia" font-weight="bold">Jerusalem</text>
+      </g>
+      <!-- Bethlehem: lat31.7,lng35.2 -->
+      <g class="marker site monarchy" data-id="bethlehem" onclick="openModal(this)">
+        <rect x="534" y="150" width="10" height="10" fill="#1976D2" stroke="#90CAF9" stroke-width="1" transform="rotate(45,539,155)" opacity="0.95"/>
+        <text x="539" y="168" text-anchor="middle" font-size="6.5" fill="#90CAF9" font-family="Georgia">Bethlehem</text>
+      </g>
+      <!-- Sinai: lat28.53,lng33.98 → x=535,y=154 -->
+      <g class="marker site exodus" data-id="sinai" onclick="openModal(this)">
+        <circle cx="525" cy="165" r="10" fill="none" stroke="#FFD700" stroke-width="1" opacity="0.6"/>
+        <rect x="520" y="160" width="10" height="10" fill="#F44336" stroke="#FFCDD2" stroke-width="1" transform="rotate(45,525,165)" opacity="0.97"/>
+        <text x="525" y="180" text-anchor="middle" font-size="6.5" fill="#FFCDD2" font-family="Georgia">Mt. Sinai</text>
+      </g>
+      <!-- Goshen/Egypt: lat30.6,lng31.8 -->
+      <g class="marker site exodus" data-id="goshen" onclick="openModal(this)">
+        <rect x="517" y="154" width="10" height="10" fill="#F44336" stroke="#FFCDD2" stroke-width="1" transform="rotate(45,522,159)" opacity="0.97"/>
+        <text x="516" y="148" text-anchor="middle" font-size="6" fill="#FFCDD2" font-family="Georgia">Goshen</text>
+      </g>
+      <!-- Jericho -->
+      <g class="marker site conquest" data-id="jericho" onclick="openModal(this)">
+        <rect x="535" y="144" width="9" height="9" fill="#8D6E63" stroke="#D7CCC8" stroke-width="1" transform="rotate(45,539,148)" opacity="0.97"/>
+        <text x="545" y="142" text-anchor="middle" font-size="6" fill="#D7CCC8" font-family="Georgia">Jericho</text>
+      </g>
+      <!-- Nineveh: lat36.36,lng43.15 → x=558,y=134 -->
+      <g class="marker site monarchy" data-id="nineveh" onclick="openModal(this)">
+        <rect x="553" y="129" width="10" height="10" fill="#1976D2" stroke="#90CAF9" stroke-width="1" transform="rotate(45,558,134)" opacity="0.95"/>
+        <text x="568" y="134" text-anchor="start" font-size="6.5" fill="#90CAF9" font-family="Georgia">Nineveh</text>
+      </g>
+      <!-- Babylon: lat32.54,lng44.42 → x=561,y=144 -->
+      <g class="marker site exile" data-id="babylon2" onclick="openModal(this)">
+        <rect x="566" y="144" width="10" height="10" fill="#546E7A" stroke="#B0BEC5" stroke-width="1" transform="rotate(45,571,149)" opacity="0.97"/>
+        <text x="580" y="146" text-anchor="start" font-size="6.5" fill="#B0BEC5" font-family="Georgia">Babylon</text>
+      </g>
+      <!-- Damascus: lat33.51,lng36.29 → x=541,y=141 -->
+      <g class="marker site monarchy" data-id="damascus" onclick="openModal(this)">
+        <rect x="536" y="136" width="9" height="9" fill="#1976D2" stroke="#90CAF9" stroke-width="1" transform="rotate(45,540,140)" opacity="0.95"/>
+        <text x="528" y="132" text-anchor="middle" font-size="6" fill="#90CAF9" font-family="Georgia">Damascus</text>
+      </g>
+      <!-- Susa: lat32.19,lng48.26 -->
+      <g class="marker site exile" data-id="susa" onclick="openModal(this)">
+        <rect x="573" y="146" width="9" height="9" fill="#546E7A" stroke="#B0BEC5" stroke-width="1" transform="rotate(45,577,150)" opacity="0.97"/>
+        <text x="577" y="160" text-anchor="middle" font-size="6" fill="#B0BEC5" font-family="Georgia">Susa</text>
+      </g>
+      <!-- Rome: lat41.9,lng12.49 → x=481,y=120 -->
+      <g class="marker site nt" data-id="rome" onclick="openModal(this)">
+        <circle cx="481" cy="120" r="9" fill="none" stroke="#F06292" stroke-width="1" opacity="0.6"/>
+        <rect x="476" y="115" width="10" height="10" fill="#E91E63" stroke="#FCE4EC" stroke-width="1" transform="rotate(45,481,120)" opacity="0.97"/>
+        <text x="481" y="107" text-anchor="middle" font-size="7" fill="#FCE4EC" font-family="Georgia">Rome</text>
+      </g>
+      <!-- Athens: lat37.98,lng23.72 → x=503,y=130 -->
+      <g class="marker site nt" data-id="athens" onclick="openModal(this)">
+        <rect x="497" y="125" width="9" height="9" fill="#E91E63" stroke="#FCE4EC" stroke-width="1" transform="rotate(45,501,129)" opacity="0.97"/>
+        <text x="500" y="140" text-anchor="middle" font-size="6.5" fill="#FCE4EC" font-family="Georgia">Athens</text>
+      </g>
+      <!-- Ephesus: lat37.94,lng27.34 → x=506,y=130 -->
+      <g class="marker site nt" data-id="ephesus" onclick="openModal(this)">
+        <rect x="510" y="125" width="9" height="9" fill="#E91E63" stroke="#FCE4EC" stroke-width="1" transform="rotate(45,514,129)" opacity="0.97"/>
+        <text x="514" y="140" text-anchor="middle" font-size="6" fill="#FCE4EC" font-family="Georgia">Ephesus</text>
+      </g>
+      <!-- Corinth: lat37.93,lng22.93 -->
+      <g class="marker site nt" data-id="corinth" onclick="openModal(this)">
+        <rect x="498" y="129" width="9" height="9" fill="#E91E63" stroke="#FCE4EC" stroke-width="1" transform="rotate(45,502,133)" opacity="0.97"/>
+        <text x="495" y="144" text-anchor="middle" font-size="6" fill="#FCE4EC" font-family="Georgia">Corinth</text>
+      </g>
+      <!-- Antioch: lat36.2,lng36.16 → x=540,y=137 -->
+      <g class="marker site nt" data-id="antioch" onclick="openModal(this)">
+        <rect x="535" y="131" width="9" height="9" fill="#E91E63" stroke="#FCE4EC" stroke-width="1" transform="rotate(45,539,135)" opacity="0.97"/>
+        <text x="546" y="127" text-anchor="middle" font-size="6.5" fill="#FCE4EC" font-family="Georgia">Antioch</text>
+      </g>
+      <!-- Philippi: lat41.01,lng24.29 -->
+      <g class="marker site nt" data-id="philippi" onclick="openModal(this)">
+        <rect x="503" y="117" width="9" height="9" fill="#E91E63" stroke="#FCE4EC" stroke-width="1" transform="rotate(45,507,121)" opacity="0.97"/>
+        <text x="507" y="112" text-anchor="middle" font-size="6" fill="#FCE4EC" font-family="Georgia">Philippi</text>
+      </g>
+      <!-- Patmos: lat37.31,lng26.55 -->
+      <g class="marker site nt" data-id="patmos" onclick="openModal(this)">
+        <rect x="505" y="131" width="9" height="9" fill="#E91E63" stroke="#FCE4EC" stroke-width="1" transform="rotate(45,509,135)" opacity="0.97"/>
+        <text x="509" y="145" text-anchor="middle" font-size="6" fill="#FCE4EC" font-family="Georgia">Patmos</text>
+      </g>
+      <!-- Alexandria: lat31.2,lng29.95 -->
+      <g class="marker site nt" data-id="alexandria" onclick="openModal(this)">
+        <rect x="518" y="150" width="9" height="9" fill="#E91E63" stroke="#FCE4EC" stroke-width="1" transform="rotate(45,522,154)" opacity="0.97"/>
+        <text x="516" y="163" text-anchor="middle" font-size="6" fill="#FCE4EC" font-family="Georgia">Alexandria</text>
+      </g>
+      <!-- Carmel: lat32.73,lng34.97 -->
+      <g class="marker site monarchy" data-id="carmel" onclick="openModal(this)">
+        <rect x="533" y="145" width="9" height="9" fill="#1976D2" stroke="#90CAF9" stroke-width="1" transform="rotate(45,537,149)" opacity="0.95"/>
+        <text x="530" y="158" text-anchor="middle" font-size="6" fill="#90CAF9" font-family="Georgia">Carmel</text>
+      </g>
+      <!-- Nazareth: lat32.7,lng35.3 -->
+      <g class="marker site nt" data-id="nazareth" onclick="openModal(this)">
+        <circle cx="538" cy="143" r="8" fill="none" stroke="#FFD700" stroke-width="1" opacity="0.5"/>
+        <rect x="534" y="139" width="9" height="9" fill="#E91E63" stroke="#FFD700" stroke-width="1.2" transform="rotate(45,538,143)" opacity="0.97"/>
+        <text x="546" y="139" text-anchor="start" font-size="6.5" fill="#FFD700" font-family="Georgia">Nazareth</text>
+      </g>
+      <!-- Galilee/Sea: lat32.83,lng35.59 -->
+      <g class="marker site nt" data-id="galilee" onclick="openModal(this)">
+        <rect x="537" y="140" width="9" height="9" fill="#E91E63" stroke="#FCE4EC" stroke-width="1" transform="rotate(45,541,144)" opacity="0.95"/>
+        <text x="549" y="145" text-anchor="start" font-size="6" fill="#FCE4EC" font-family="Georgia">Sea of Galilee</text>
+      </g>
+      <!-- Nebo/Pisgah: lat31.77,lng35.73 -->
+      <g class="marker site exodus" data-id="nebo" onclick="openModal(this)">
+        <rect x="539" y="148" width="9" height="9" fill="#F44336" stroke="#FFCDD2" stroke-width="1" transform="rotate(45,543,152)" opacity="0.95"/>
+        <text x="552" y="150" text-anchor="start" font-size="6" fill="#FFCDD2" font-family="Georgia">Mt. Nebo</text>
+      </g>
+
+      <!-- LEGEND bottom-left -->
+      <rect x="8" y="390" width="165" height="55" rx="6" fill="rgba(5,14,26,0.88)" stroke="#1E3A5F" stroke-width="0.8"/>
+      <circle cx="22" cy="403" r="5" fill="#C8841A" stroke="#FFD700" stroke-width="1"/>
+      <text x="32" y="406" font-size="7.5" fill="#C5B89A" font-family="Georgia">Shem — Semitic Nations</text>
+      <circle cx="22" cy="416" r="5" fill="#2E7D32" stroke="#66BB6A" stroke-width="1"/>
+      <text x="32" y="419" font-size="7.5" fill="#C5B89A" font-family="Georgia">Ham — African/Canaanite</text>
+      <circle cx="22" cy="429" r="5" fill="#1565C0" stroke="#42A5F5" stroke-width="1"/>
+      <text x="32" y="432" font-size="7.5" fill="#C5B89A" font-family="Georgia">Japheth — Euro/Asian</text>
+      <rect x="100" y="399" width="7" height="7" fill="#E91E63" transform="rotate(45,103,402)"/>
+      <text x="112" y="406" font-size="7.5" fill="#C5B89A" font-family="Georgia">Hebrew Sites</text>
+      <circle cx="103" cy="416" r="5" fill="none" stroke="#FFD700" stroke-width="1.2"/>
+      <text x="112" y="419" font-size="7.5" fill="#FFD700" font-family="Georgia">Holy / Sacred</text>
+    </svg>
+  </div>
+
+  <div id="map-controls">
+    <div class="map-btn" onclick="zoomIn()">+</div>
+    <div class="map-btn" onclick="resetView()" style="font-size:14px">↺</div>
+    <div class="map-btn" onclick="zoomOut()">−</div>
+  </div>
+</div>
+
+<!-- ═══ NATIONS TAB ═══ -->
+<div id="nations-panel" class="scroll-panel">
+  <!-- SHEM -->
+  <div class="card shem">
+    <div class="card-title" style="color:#FFD700">Shem (שֵׁם) — "Name/Renown"</div>
+    <div class="card-meaning">Father of the Semitic peoples — Israelites, Arabs, Arameans, Assyrians, Persians</div>
+    <div class="card-verse">📜 Gen 10:21–31 | Deut 32:8 | Luke 3:36</div>
+    <div class="card-body">Shem's descendants occupy the central heartland of the ancient world. Through his line runs the covenantal thread: Arphaxad → Shelah → Eber (root of "Hebrew") → Peleg → Reu → Serug → Nahor → Terah → <strong style="color:#FFD700">Abraham</strong>. Noah's blessing declared: "Blessed be YHWH, God of Shem" — placing the covenant name of God with Shem's line specifically. Judaism, Christianity, and Islam all emerge from Shem.</div>
+    <div class="nation-list">
+      <div class="nation-item" onclick="showDetail('elam')">
+        <div class="nation-name" style="color:#FFD700">Elam → Persia/Iran</div>
+        <div class="nation-people">👥 Elamites → Persians (Cyrus, Darius, Xerxes)</div>
+        <div class="nation-verse">📜 Gen 10:22 | Dan 8:20 | Isa 21:2</div>
+        <div class="nation-note">Southwest Iran (Khuzestan). Capital: Susa. Cyrus the Great — a Persian — released Israel from Babylonian captivity (Isa 44:28). Called "God's anointed" (Isa 45:1) — remarkable honour for a non-Israelite.</div>
+      </div>
+      <div class="nation-item" onclick="showDetail('asshur')">
+        <div class="nation-name" style="color:#FFD700">Asshur → Assyria</div>
+        <div class="nation-people">👥 Assyrians</div>
+        <div class="nation-verse">📜 Gen 10:22 | 2 Kgs 17:6 | Jonah 3</div>
+        <div class="nation-note">Between Tigris & Euphrates, capital Nineveh (near modern Mosul). Took the Northern Kingdom of Israel captive 722 BC under Sargon II. Yet Nineveh repented under Jonah — the only Gentile city to do so in the OT.</div>
+      </div>
+      <div class="nation-item" onclick="showDetail('arphaxad')">
+        <div class="nation-name" style="color:#FFD700">Arphaxad → Chaldea/Babylon</div>
+        <div class="nation-people">👥 Chaldeans → Abraham's ancestral line</div>
+        <div class="nation-verse">📜 Gen 10:22,24 | Gen 11:10–26</div>
+        <div class="nation-note">Southern Mesopotamia. Abraham came from Ur of the Chaldees — Arphaxad's territory. Through Shelah → Eber → Peleg → eventually Abraham. The Messianic line passes directly through Arphaxad.</div>
+      </div>
+      <div class="nation-item" onclick="showDetail('lud')">
+        <div class="nation-name" style="color:#FFD700">Lud → Lydia (Asia Minor)</div>
+        <div class="nation-people">👥 Lydians</div>
+        <div class="nation-verse">📜 Gen 10:22 | Isa 66:19 | Ezek 27:10</div>
+        <div class="nation-note">Western Anatolia (modern Turkey). Some branches migrated to North Africa. Lydia was famously wealthy — "rich as Croesus." Ezekiel mentions Lud as warriors and traders.</div>
+      </div>
+      <div class="nation-item" onclick="showDetail('aram')">
+        <div class="nation-name" style="color:#FFD700">Aram → Syria</div>
+        <div class="nation-people">👥 Arameans → Syrian peoples</div>
+        <div class="nation-verse">📜 Gen 10:22–23 | Gen 25:20 | 2 Sam 8:5</div>
+        <div class="nation-note">Syria and northern Mesopotamia. Aramaic became the international language of the Near East — Yeshua spoke Aramaic. Rebekah, Rachel, and Leah were Aramean women. "A wandering Aramean was my father" (Deut 26:5).</div>
+      </div>
+      <div class="nation-item" onclick="showDetail('sheba_s')">
+        <div class="nation-name" style="color:#FFD700">Sheba & Ophir (Joktan's sons)</div>
+        <div class="nation-people">👥 South Arabians / Sabeans / Yemenites</div>
+        <div class="nation-verse">📜 Gen 10:28–29 | 1 Kgs 10:1–13 | Matt 12:42</div>
+        <div class="nation-note">Yemen and SW Arabia. The Queen of Sheba (Makeda in Ethiopian tradition) visited Solomon with gold, spices, and hard questions. Yeshua called her "Queen of the South" who "came from the ends of the earth." Ophir supplied gold for the Temple (1 Kgs 9:28).</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HAM -->
+  <div class="card ham">
+    <div class="card-title" style="color:#66BB6A">Ham (חָם) — "Hot/Sunburnt/Black"</div>
+    <div class="card-meaning">Father of the African and Canaanite peoples</div>
+    <div class="card-verse">📜 Gen 10:6–20 | Gen 9:20–27 | Ps 105:23</div>
+    <div class="card-body">Ham's four sons — Cush, Mizraim, Put, Canaan — populated Africa and the Levant. <strong>IMPORTANT NOTE:</strong> The false teaching that "Ham = Black race = cursed to slavery" is a colonial distortion with no scriptural basis. The CURSE fell on <em>Canaan</em> (not Ham), and Canaan was a Levantine/Near Eastern people — not African. Ham's African sons (Cush, Mizraim, Put) received no curse. Egypt (Mizraim) and Ethiopia (Cush) are honoured in Scripture. Ps 68:31: "Ethiopia shall soon stretch out her hands to Yah."</div>
+    <div class="nation-list">
+      <div class="nation-item" onclick="showDetail('cush')">
+        <div class="nation-name" style="color:#66BB6A">Cush → Ethiopia/Nubia/Sudan</div>
+        <div class="nation-people">👥 Cushites → Ethiopians, Nubians, Sudanese</div>
+        <div class="nation-verse">📜 Gen 10:6–8 | Ps 68:31 | Zeph 3:10 | Acts 8:27</div>
+        <div class="nation-note">Upper Nile — modern Sudan, Ethiopia, Eritrea. Moses married a Cushite woman (Num 12:1). The Ethiopian eunuch (Acts 8:27) was from Cush's land and was one of the first Gentile converts. Nimrod (the first world-empire builder) was Cush's son. Ps 68:31: Cush's hands will reach to Yah — a prophecy of African spiritual destiny.</div>
+      </div>
+      <div class="nation-item" onclick="showDetail('mizraim')">
+        <div class="nation-name" style="color:#66BB6A">Mizraim → Egypt</div>
+        <div class="nation-people">👥 Egyptians</div>
+        <div class="nation-verse">📜 Gen 10:6,13–14 | Exod 1 | Isa 19:25</div>
+        <div class="nation-note">The Hebrew word for Egypt throughout the OT. Joseph ruled here. Israel's 430-year sojourn. The Exodus defined Israel's identity. Isa 19:25 — remarkable prophecy: "Blessed be Egypt my people" — Egypt is called Yah's people alongside Israel.</div>
+      </div>
+      <div class="nation-item" onclick="showDetail('put')">
+        <div class="nation-name" style="color:#66BB6A">Put → Libya/North Africa</div>
+        <div class="nation-people">👥 Libyans / North African peoples</div>
+        <div class="nation-verse">📜 Gen 10:6 | Ezek 27:10 | Nah 3:9</div>
+        <div class="nation-note">Libya and the North African Mediterranean coast west of Egypt. Put warriors served as mercenaries in Egyptian armies (Jer 46:9). Some scholars link Put also to Somalia (Punt in Egyptian records), extending Ham's reach down the East African coast.</div>
+      </div>
+      <div class="nation-item" onclick="showDetail('canaan')">
+        <div class="nation-name" style="color:#FF8A65">Canaan → The Promised Land (CURSED)</div>
+        <div class="nation-people">👥 Hittites, Jebusites, Amorites, Girgashites, Hivites, and more</div>
+        <div class="nation-verse">📜 Gen 9:25 | Gen 10:15–19 | Gen 15:18–21 | Deut 7:1</div>
+        <div class="nation-note">Noah cursed Canaan: "Servant of servants shall he be to his brothers." The land of Canaan was covenantally deeded to Abraham's seed (Gen 15:18). Joshua's conquest was the fulfilment of that covenant. Canaan's peoples (not Ham's African sons) were the ones under the curse — a critical distinction that colonial interpreters deliberately obscured to justify African slavery.</div>
+      </div>
+      <div class="nation-item" onclick="showDetail('nimrod_babel')">
+        <div class="nation-name" style="color:#FF6D00">⚠ Nimrod — First World-Conqueror</div>
+        <div class="nation-people">👥 Cushite empire builder</div>
+        <div class="nation-verse">📜 Gen 10:8–12 | Mic 5:6 | Rev 17–18 (type)</div>
+        <div class="nation-note">Son of Cush. "Mighty hunter BEFORE [against] YHWH." Name likely means "Let us rebel." Founded Babel, Erech, Akkad, Calneh in Shinar — then extended into Assyria building Nineveh. First man to build a kingdom through force. Babylon (his city) becomes the prophetic symbol of all godless human empire in Revelation.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- JAPHETH -->
+  <div class="card japheth">
+    <div class="card-title" style="color:#64B5F6">Japheth (יֶפֶת) — "Enlargement/Beauty"</div>
+    <div class="card-meaning">Father of the Indo-European peoples — Greek, Persian, Slavic, Germanic, Celtic, Turkish</div>
+    <div class="card-verse">📜 Gen 10:2–5 | Gen 9:27</div>
+    <div class="card-body">Noah's blessing: "May God enlarge Japheth, and let him dwell in the tents of Shem." Japheth's descendants spread into the broadest territory — from the Aegean to the Caucasus, across Central Asia, and eventually into Europe. They are "the coastlands and islands of the Gentiles" (Gen 10:5). Japheth's enlargement included eventually entering Shem's spiritual inheritance through the Gospel.</div>
+    <div class="nation-list">
+      <div class="nation-item" onclick="showDetail('gomer')">
+        <div class="nation-name" style="color:#64B5F6">Gomer → Germanic/Celtic peoples</div>
+        <div class="nation-people">👥 Cimmerians → Germans, French, Spanish, Celtic</div>
+        <div class="nation-verse">📜 Gen 10:2–3 | Ezek 38:6</div>
+        <div class="nation-note">Settled north of Black Sea (Crimea preserves the name). Pushed westward over centuries into Western Europe. Sons: Ashkenaz (Germanic/Scythian peoples), Riphath, Togarmah (Armenia/Turkic). Josephus identified Gomer with the Galatians (Gauls/Celts).</div>
+      </div>
+      <div class="nation-item" onclick="showDetail('magog')">
+        <div class="nation-name" style="color:#64B5F6">Magog → Scythia/Russia</div>
+        <div class="nation-people">👥 Scythians → Slavic / Russian peoples</div>
+        <div class="nation-verse">📜 Gen 10:2 | Ezek 38–39 | Rev 20:8</div>
+        <div class="nation-note">North of Caspian Sea, the great northern steppe. Josephus: "Magog founded the Magogites, called Scythians by the Greeks." Ezekiel 38–39 prophesies a great coalition led by "Gog of the land of Magog" attacking Israel in the last days. Rev 20:8 confirms this as an end-times event.</div>
+      </div>
+      <div class="nation-item" onclick="showDetail('madai')">
+        <div class="nation-name" style="color:#64B5F6">Madai → Media/Iran</div>
+        <div class="nation-people">👥 Medes → Iranians/Kurds</div>
+        <div class="nation-verse">📜 Gen 10:2 | Dan 5:28 | Dan 8:20</div>
+        <div class="nation-note">NW Iran, south of Caspian. Capital: Ecbatana (Hamadan). Medes and Persians together overthrew Babylon in one night (Dan 5). The "law of the Medes and Persians which changes not" — an irrevocable decree system (Dan 6:8). Cyrus the Medo-Persian released Israel.</div>
+      </div>
+      <div class="nation-item" onclick="showDetail('javan')">
+        <div class="nation-name" style="color:#64B5F6">Javan → Greece</div>
+        <div class="nation-people">👥 Ionians → Greeks</div>
+        <div class="nation-verse">📜 Gen 10:2,4–5 | Dan 8:21 | Joel 3:6 | John 12:20</div>
+        <div class="nation-note">Hebrew word for Greece (Yavan) used throughout OT. Sons: Elishah (S. Greece), Tarshish (Iberia), Kittim (Cyprus), Rodanim (Rhodes). The "Greeks" who came to see Yeshua (John 12:20) were Javan's heirs entering Shem's tent. Paul's Greek-language ministry = Japheth dwelling in Shem's tents, as Noah prophesied.</div>
+      </div>
+      <div class="nation-item" onclick="showDetail('tarshish')">
+        <div class="nation-name" style="color:#64B5F6">Tarshish → Southern Spain</div>
+        <div class="nation-people">👥 Tartessians → Iberian coastal peoples</div>
+        <div class="nation-verse">📜 Gen 10:4 | Jonah 1:3 | 1 Kgs 10:22 | Ps 72:10</div>
+        <div class="nation-note">Far western Mediterranean — likely Tartessos in southern Spain. The furthest known western point in the ancient world. Jonah bought passage TO Tarshish to flee from YHWH — maximum possible distance from Nineveh. "Ships of Tarshish" = the largest ocean-going vessels. Ps 72:10 sees the kings of Tarshish bringing tribute to the Messiah.</div>
+      </div>
+      <div class="nation-item" onclick="showDetail('meshech')">
+        <div class="nation-name" style="color:#64B5F6">Tubal & Meshech → Caucasus/Russia</div>
+        <div class="nation-people">👥 Tabali, Mushki → Georgians, Armenians, Slavs</div>
+        <div class="nation-verse">📜 Gen 10:2 | Ezek 38:2–3 | Ezek 39:1</div>
+        <div class="nation-note">NE Anatolia and Caucasus region. Always paired in Ezekiel with Gog as part of the great northern coalition. Josephus linked Meshech to Cappadocians. Later traditions associate them with Muscovites (Moscow) and the Slavic peoples. A key component of Ezekiel's Gog-Magog prophecy.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SITES TAB ═══ -->
+<div id="sites-panel" class="scroll-panel">
+  <div class="era-header" style="color:#9C27B0">🌊 PRIMORDIAL / FLOOD ERA</div>
+  <div class="site-item" style="border-left-color:#9C27B0" onclick="showDetail('ararat')">
+    <div class="site-name">Mt. Ararat — Ark's Landing</div>
+    <div class="site-verse">📜 Gen 8:4 | Modern Turkey/Armenia border</div>
+    <div class="site-note">The ark came to rest "upon the mountains of Ararat" after 150 days. Traditional peak is 5,165m — highest in the region. From here Noah's three sons dispersed to fill the earth (Gen 9:19).</div>
+  </div>
+  <div class="site-item" style="border-left-color:#9C27B0" onclick="showDetail('babel')">
+    <div class="site-name">Tower of Babel / Shinar (Babylon)</div>
+    <div class="site-verse">📜 Gen 11:1–9 | Southern Iraq</div>
+    <div class="site-note">Post-flood humanity gathered here in rebellion — "let us make a name for ourselves." Yah confused the languages and scattered the nations. This is the originating event for the Table of Nations (Gen 10 is the map of that scattering). Nimrod's kingdom of Babel was built on this same site.</div>
+  </div>
+
+  <div class="era-header" style="color:#FF9800">🌿 PATRIARCHS ERA (Abraham–Joseph)</div>
+  <div class="site-item" style="border-left-color:#FF9800" onclick="showDetail('ur')">
+    <div class="site-name">Ur of the Chaldees — Abraham's Origin</div>
+    <div class="site-verse">📜 Gen 11:28–12:1 | Southern Iraq (Tell el-Muqayyar)</div>
+    <div class="site-note">Abraham (Abram) born and raised here. Excavations by Sir Leonard Woolley (1922–34) confirmed Ur as a sophisticated Sumerian city-state with moon-god worship. Yah called Abram OUT of this place — breaking from pagan Chaldean civilisation.</div>
+  </div>
+  <div class="site-item" style="border-left-color:#FF9800" onclick="showDetail('haran')">
+    <div class="site-name">Haran — The Way-Station</div>
+    <div class="site-verse">📜 Gen 11:31–12:4 | SE Turkey</div>
+    <div class="site-note">Terah took the family and stopped here — he died at 205. Yah re-confirmed the call to Abram here at 75. Jacob fled to Haran from Esau, served Laban 20 years, and brought back Rachel, Leah, and 11 sons. The family's Aramean connection is rooted here.</div>
+  </div>
+  <div class="site-item" style="border-left-color:#FF9800" onclick="showDetail('hebron')">
+    <div class="site-name">Hebron / Mamre — Abraham's Home</div>
+    <div class="site-verse">📜 Gen 13:18 | 18:1 | 23:2 | 35:27</div>
+    <div class="site-note">Abraham's permanent base. Three angels/messengers appeared here announcing Isaac's birth and Sodom's destruction. The Cave of Machpelah — purchased by Abraham — holds Abraham & Sarah, Isaac & Rebekah, Jacob & Leah. Still accessible today in the city of Hebron/Al-Khalil.</div>
+  </div>
+  <div class="site-item" style="border-left-color:#FF9800" onclick="showDetail('moriah')">
+    <div class="site-name">Mt. Moriah — The Binding of Isaac</div>
+    <div class="site-verse">📜 Gen 22:2 | 2 Chr 3:1 | John 3:16</div>
+    <div class="site-note">Yah told Abraham "Take your son, your only son whom you love" and offer him here. Abraham obeyed. The Angel stopped him — a ram provided instead. 2 Chr 3:1 confirms: Solomon built the First Temple on this exact mountain. The sacrifice of Isaac foreshadowed the offering of Yeshua on the same sacred ground.</div>
+  </div>
+
+  <div class="era-header" style="color:#F44336">🔥 EXODUS & WILDERNESS</div>
+  <div class="site-item" style="border-left-color:#F44336" onclick="showDetail('goshen')">
+    <div class="site-name">Land of Goshen — Israel in Egypt</div>
+    <div class="site-verse">📜 Gen 47:6 | Exod 8:22 | NE Nile Delta</div>
+    <div class="site-note">Joseph settled Jacob's family here — best of Egypt's land. Israel grew from 70 persons to millions over 430 years. Goshen was divinely shielded from the plagues (flies, darkness, death — Exod 8:22, 10:23, 12:13). The distinction between Goshen and Egypt mirrors the distinction between the redeemed and the world.</div>
+  </div>
+  <div class="site-item" style="border-left-color:#F44336" onclick="showDetail('sinai')">
+    <div class="site-name">⭐ Mt. Sinai / Horeb — The Mountain of Yah</div>
+    <div class="site-verse">📜 Exod 3:1–2 | Exod 19–20 | 1 Kgs 19:8–12 | Deut 4:10</div>
+    <div class="site-note">Moses and the burning bush. The Ten Commandments. The Tabernacle blueprint revealed. Elijah fled here after Jezebel's threat and heard Yah in the still small voice. Called "the mountain of Yah" and "the mountain of God." The exact location is debated — traditional Jebel Musa in Sinai Peninsula, but some scholars (Ron Wyatt, etc.) propose Jebel al-Lawz in Saudi Arabia (ancient Midian) based on Galatians 4:25.</div>
+  </div>
+  <div class="site-item" style="border-left-color:#F44336" onclick="showDetail('nebo')">
+    <div class="site-name">Mt. Nebo — Moses' Final View</div>
+    <div class="site-verse">📜 Deut 34:1–5 | Modern Jordan</div>
+    <div class="site-note">Yah showed Moses all the Promised Land from here. Moses died at 120, his eyes still sharp, his vigour undiminished. "No man knows his burial place to this day" — buried by Yah himself. Jude 1:9 reveals the Archangel Michael disputed over Moses' body with the devil. The unlocated grave prevented idol worship.</div>
+  </div>
+
+  <div class="era-header" style="color:#8D6E63">⚔ CONQUEST (Joshua)</div>
+  <div class="site-item" style="border-left-color:#8D6E63" onclick="showDetail('jericho')">
+    <div class="site-name">Jericho — First Battle of Canaan</div>
+    <div class="site-verse">📜 Josh 6:20 | Heb 11:30 | Luke 19:1</div>
+    <div class="site-note">Walls fell after 7 days of marching and the shout of the people — no conventional warfare. Rahab the prostitute (a Canaanite) sheltered the spies and was saved — her scarlet cord a type of the blood of the Lamb. She is in the lineage of the Messiah (Matt 1:5). Archaeologist Kathleen Kenyon confirmed destruction layers at Tell es-Sultan.</div>
+  </div>
+
+  <div class="era-header" style="color:#1976D2">👑 MONARCHY (David–Exile)</div>
+  <div class="site-item" style="border-left-color:#FFD700" onclick="showDetail('jerusalem')">
+    <div class="site-name">⭐⭐ Jerusalem / Zion — City of the Great King</div>
+    <div class="site-verse">📜 2 Sam 5:6–7 | 1 Kgs 6:1 | Ps 87:2 | Rev 21:2</div>
+    <div class="site-note">Most mentioned city in the Bible — over 800 times. Captured by David from Jebusites ~1000 BC. Solomon's Temple built on Moriah. Destroyed by Babylon 587 BC. Second Temple built 516 BC. Herod's Temple expanded 20 BC. Yeshua's triumphal entry, Last Supper, crucifixion, and resurrection all centred here. The New Jerusalem descends from heaven in Revelation 21.</div>
+  </div>
+  <div class="site-item" style="border-left-color:#1976D2" onclick="showDetail('bethlehem')">
+    <div class="site-name">Bethlehem — City of David & of Messiah</div>
+    <div class="site-verse">📜 Ruth 1:19 | 1 Sam 16:1 | Mic 5:2 | Matt 2:1</div>
+    <div class="site-note">Ruth and Boaz married here — the Moabite woman who became grandmother of David and ancestor of Yeshua. Samuel anointed David here from among Jesse's sons. Micah prophesied 700 years before: "Out of you, Bethlehem Ephrathah… shall come forth the Ruler of Israel whose origin is from of old, from ancient days." Fulfilled at Yeshua's birth.</div>
+  </div>
+  <div class="site-item" style="border-left-color:#1976D2" onclick="showDetail('carmel')">
+    <div class="site-name">Mt. Carmel — Fire from Heaven</div>
+    <div class="site-verse">📜 1 Kgs 18:19–40</div>
+    <div class="site-note">Elijah's greatest confrontation: 450 prophets of Baal vs. one prophet of Yah. Baal's prophets cut themselves, cried from morning till noon — silence. Elijah repaired the altar with 12 stones (one per tribe), soaked it three times in water, then prayed simply. Fire fell and consumed everything including the water and stones. The people fell and cried: "YHWH — He is God!" The 3.5-year drought ended that same day.</div>
+  </div>
+  <div class="site-item" style="border-left-color:#1976D2" onclick="showDetail('nineveh')">
+    <div class="site-name">Nineveh — Capital of Assyria</div>
+    <div class="site-verse">📜 Gen 10:11 | Jonah 3:3 | 2 Kgs 19:36 | Nah 1:1</div>
+    <div class="site-note">Nimrod built it. Jonah preached repentance here — 120,000 people repented in sackcloth including the king. "That great city" became the one Gentile city in the OT that turned to Yah en masse. Sennacherib besieged Jerusalem — 185,000 Assyrians struck dead by an angel overnight. Nahum prophesied Nineveh's destruction — fulfilled 612 BC when Babylon and the Medes destroyed it.</div>
+  </div>
+
+  <div class="era-header" style="color:#546E7A">🔒 EXILE PERIOD</div>
+  <div class="site-item" style="border-left-color:#546E7A" onclick="showDetail('babylon2')">
+    <div class="site-name">Babylon — The Great Captivity</div>
+    <div class="site-verse">📜 2 Kgs 25:1 | Dan 1:1–3 | Jer 29:7 | Rev 17–18</div>
+    <div class="site-note">Nebuchadnezzar destroyed Jerusalem and the Temple in 587 BC. 70-year captivity as Jeremiah prophesied. Daniel, Shadrach, Meshach, and Abednego bore witness to Yah here — the fiery furnace, the lion's den, the interpretation of dreams. Cyrus released Israel 538 BC, fulfilling Isaiah's 150-year-prior prophecy. In Revelation, Babylon is the code name for the end-times world empire of corruption.</div>
+  </div>
+  <div class="site-item" style="border-left-color:#546E7A" onclick="showDetail('susa')">
+    <div class="site-name">Susa (Shushan) — Persian Royal City</div>
+    <div class="site-verse">📜 Esth 1:2 | Neh 1:1 | Dan 8:2</div>
+    <div class="site-note">Persian winter capital. Esther and Mordecai's story unfolded here — Haman's genocide plot against the Jews was overturned. Esther's courage: "If I perish, I perish." Nehemiah served here as cupbearer to Artaxerxes before being sent to rebuild Jerusalem's walls. Daniel received his ram-and-goat vision while standing beside the Ulai Canal at Susa.</div>
+  </div>
+
+  <div class="era-header" style="color:#E91E63">✝ NEW TESTAMENT ERA</div>
+  <div class="site-item" style="border-left-color:#E91E63" onclick="showDetail('nazareth')">
+    <div class="site-name">⭐ Nazareth — Where Yeshua Grew Up</div>
+    <div class="site-verse">📜 Matt 2:23 | Luke 4:16–21 | John 1:46</div>
+    <div class="site-note">Yeshua raised here for ~30 years. In the synagogue he unrolled Isaiah 61 and declared: "Today this scripture is fulfilled in your hearing." The hometown crowd tried to throw him off a cliff. Nathanael's cynicism: "Can anything good come from Nazareth?" — yet this despised village became the name by which the Messiah was known across the empire.</div>
+  </div>
+  <div class="site-item" style="border-left-color:#E91E63" onclick="showDetail('galilee')">
+    <div class="site-name">Sea of Galilee (Kinneret)</div>
+    <div class="site-verse">📜 Matt 4:18 | Matt 14:25 | John 21:1</div>
+    <div class="site-note">Yeshua walked on water here. Calmed the storm with a word. Called Peter, Andrew, James, and John from their fishing nets. Fed 5,000 on its shores. After the resurrection, appeared here to the disciples — "Cast the net on the right side" — 153 fish. The Sea of Galilee is the primary theatre of Yeshua's miracle ministry.</div>
+  </div>
+  <div class="site-item" style="border-left-color:#E91E63" onclick="showDetail('antioch')">
+    <div class="site-name">Antioch (Syria) — First "Christians"</div>
+    <div class="site-verse">📜 Acts 11:26 | Acts 13:1–3</div>
+    <div class="site-note">Believers first called "Christians" (Christianoi — "Christ-followers") here. Paul's missionary base — all three journeys launched from Antioch. The Jerusalem Council's decision on Gentile inclusion was sent to Antioch first. Represents the first truly multiracial, multinational congregation in church history.</div>
+  </div>
+  <div class="site-item" style="border-left-color:#E91E63" onclick="showDetail('philippi')">
+    <div class="site-name">Philippi — Gospel First in Europe</div>
+    <div class="site-verse">📜 Acts 16:11–40 | Phil 1:1</div>
+    <div class="site-note">Paul's vision of the Macedonian man led him here — first preaching of the Gospel on European soil. Lydia (a businesswoman from Thyatira) was baptised — first recorded European convert. Paul and Silas jailed, sang hymns at midnight, earthquake opened doors — the jailer and his household converted that same night.</div>
+  </div>
+  <div class="site-item" style="border-left-color:#E91E63" onclick="showDetail('rome')">
+    <div class="site-name">Rome — Heart of the Empire</div>
+    <div class="site-verse">📜 Acts 28:16 | Rom 1:7 | Rom 15:24 | Rev 17</div>
+    <div class="site-note">Paul arrived in chains after shipwreck — and preached freely for 2 years under house arrest. Both Paul and Peter were martyred here under Nero. Paul's Epistle to the Romans — the most comprehensive theological letter in existence — was written before he arrived. In Revelation, Rome is coded as "Babylon" — the beast's city built on seven hills.</div>
+  </div>
+  <div class="site-item" style="border-left-color:#E91E63" onclick="showDetail('patmos')">
+    <div class="site-name">Patmos — Island of Revelation</div>
+    <div class="site-verse">📜 Rev 1:9–11</div>
+    <div class="site-note">John exiled here by Emperor Domitian (~95 AD). A small volcanic island in the Aegean — the Roman equivalent of a prison colony. "I was in the Spirit on the Lord's Day, and I heard behind me a loud voice like a trumpet." The entire Book of Revelation received here — the final word of all Scripture, from the most isolated place imaginable. Yah's last message came from the margins, not the centres of power.</div>
+  </div>
+  <div class="site-item" style="border-left-color:#E91E63" onclick="showDetail('athens')">
+    <div class="site-name">Athens — Paul at the Areopagus</div>
+    <div class="site-verse">📜 Acts 17:16–34</div>
+    <div class="site-note">Paul, provoked by the city full of idols, reasoned daily in the synagogue and marketplace. On Mars Hill he declared: "To the unknown God — whom you worship in ignorance, I now proclaim to you." Philosophers mocked the resurrection. But Dionysius the Areopagite and Damaris believed — the Gospel conquered the capital of human philosophy.</div>
+  </div>
+  <div class="site-item" style="border-left-color:#E91E63" onclick="showDetail('alexandria')">
+    <div class="site-name">Alexandria — Jewish Diaspora & Early Church</div>
+    <div class="site-verse">📜 Acts 6:9 | Acts 18:24 | LXX origin</div>
+    <div class="site-note">The largest Jewish community outside Judea — up to 1 million Jews lived here under the Ptolemies. The Septuagint (LXX) — Greek translation of the Hebrew Scriptures — was produced here (~250 BC), making the Word available to the entire Greek-speaking world. Apollos, "mighty in the Scriptures," came from Alexandria (Acts 18:24). The Alexandrian church became one of the most theologically productive in early Christianity.</div>
+  </div>
+</div>
+
+<!-- ═══ SCRIPTURE TAB ═══ -->
+<div id="scripture-panel" class="scroll-panel">
+  <div style="font-size:13px;color:#90A4AE;line-height:1.7;margin-bottom:10px;">
+    The Table of Nations is the world's oldest recorded geography — predating Greek, Egyptian, and Babylonian geographical texts. It is not mythology but a structured theological-geographic framework that maps all known nations to their covenantal origin in Noah.
+  </div>
+
+  <div class="scripture-card">
+    <div class="scripture-ref">Gen 9:25–27 — Noah's Prophetic Decree</div>
+    <div class="scripture-text">"Cursed be Canaan; a servant of servants shall he be to his brothers." And he said, "Blessed be YHWH, the God of Shem; and let Canaan be his servant. May God enlarge Japheth, and let him dwell in the tents of Shem, and let Canaan be his servant."</div>
+    <div class="scripture-note">This single prophetic utterance sets the trajectory of all human history. Note: The curse is on CANAAN — not Ham, not Africa. Shem receives covenantal connection to YHWH's name. Japheth receives enlargement (territory) but depends on Shem's tent (spiritual inheritance). Fulfilled in Japheth's Indo-European peoples receiving the Gospel through the Hebrew Messiah.</div>
+  </div>
+
+  <div class="scripture-card">
+    <div class="scripture-ref">Deut 32:8–9 — The Divine Division</div>
+    <div class="scripture-text">"When the Most High gave to the nations their inheritance, when he divided mankind, he fixed the borders of the peoples according to the number of the sons of God [Elohim]. But YHWH's portion is his people, Jacob his allotted heritage."</div>
+    <div class="scripture-note">Critical: The Septuagint (LXX) and Dead Sea Scrolls (4QDeutj) both read "sons of God" (bene Elohim), not "sons of Israel" — meaning the nations were allocated by Yah to 70 divine beings (as in the Book of Enoch, 1 Enoch 89:59). Israel was Yah's own direct portion — the other 70 nations were administered under delegated authority. Paul references this in Acts 17:26.</div>
+  </div>
+
+  <div class="scripture-card">
+    <div class="scripture-ref">Gen 10:32 — The Summary</div>
+    <div class="scripture-text">"These are the clans of Noah's sons, according to their genealogies, in their nations, and from these the nations spread abroad on the earth after the flood."</div>
+    <div class="scripture-note">The entire diversity of humanity traces back to three men — and ultimately to one man (Noah), from one family. This is the most radical statement of human unity in the ancient world. No ancient civilisation claimed all rival peoples as cousins. Only the Hebrew Scriptures assert this universal brotherhood.</div>
+  </div>
+
+  <div class="scripture-card">
+    <div class="scripture-ref">Acts 17:26 — Paul on the Areopagus</div>
+    <div class="scripture-text">"And he made from one man every nation of mankind to live on all the face of the earth, having determined allotted periods and the boundaries of their dwelling place."</div>
+    <div class="scripture-note">Paul, speaking to Greek philosophers, declares the Table of Nations doctrine: one origin, divinely set borders, divinely set seasons. This directly refutes Greek racial mythology (that Greeks were autochthonous — "born from the earth" itself). Every nation has a set time and a set territory by the design of the Most High.</div>
+  </div>
+
+  <div class="scripture-card">
+    <div class="scripture-ref">Isa 19:24–25 — Africa in the Kingdom</div>
+    <div class="scripture-text">"In that day Israel will be the third with Egypt and Cush [Ethiopia], a blessing in the midst of the earth, whom YHWH of hosts has blessed, saying, 'Blessed be Egypt my people, and Cush the work of my hands, and Israel my inheritance.'"</div>
+    <div class="scripture-note">Extraordinary: Egypt (Ham/Mizraim) called "my people" and Cush (Ham/Ethiopia) called "the work of my hands" — the same language used for Israel. The colonial use of Ham's curse to justify African slavery is completely demolished by this prophecy. Ham's African sons have a glorious covenantal destiny.</div>
+  </div>
+
+  <div class="scripture-card">
+    <div class="scripture-ref">Ps 68:31 — Africa's Spiritual Destiny</div>
+    <div class="scripture-text">"Cush [Ethiopia] shall hasten to stretch out her hands to God."</div>
+    <div class="scripture-note">A prophetic declaration of African peoples reaching toward Yah. Fulfilled initially in the Ethiopian eunuch (Acts 8:27) — the treasurer of the Queen of Ethiopia (Candace) — who was reading Isaiah 53 in his chariot, received the Gospel from Philip, was baptised, and "went on his way rejoicing." He carried the Gospel back to the African continent. Ethiopia's ancient claim to Solomonic lineage (through the Queen of Sheba) is consistent with this deep covenantal connection.</div>
+  </div>
+
+  <div class="scripture-card">
+    <div class="scripture-ref">Rev 7:9 — All Nations Before the Throne</div>
+    <div class="scripture-text">"After this I looked, and behold, a great multitude that no one could number, from every nation, from all tribes and peoples and languages, standing before the throne and before the Lamb, clothed in white robes, with palm branches in their hands."</div>
+    <div class="scripture-note">The end of the story: all 70 nations from Genesis 10 — every branch of Noah's tree — represented in the eternal assembly. The Table of Nations is not a record of division but of a family being called back to unity in Messiah. What Babel scattered, the Lamb gathers.</div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div id="modal-overlay" onclick="closeModal()">
+  <div id="modal-box" onclick="event.stopPropagation()">
+    <div class="pull-bar"></div>
+    <span id="modal-close" onclick="closeModal()">✕</span>
+    <div id="modal-title"></div>
+    <div id="modal-sub"></div>
+    <div id="modal-verse"></div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+// ── DATA ──
+const NATIONS = {
+  elam: { name:"Elam (Persia/Iran)", sub:"Son of Shem | Elamites → Persians", verse:"Gen 10:22 | Dan 8:20 | Isa 21:2", body:"Southwest Iran, ancient Khuzestan. Capital: Susa. One of the oldest civilisations on earth. The Persians (Cyrus, Darius, Xerxes) descended from this stock. Cyrus the Great released Israel from Babylonian captivity (Isa 44:28) and was called 'YHWH's anointed' (Isa 45:1) — an extraordinary honour given to a non-Israelite ruler. Elam was a participant in Abraham's era (the battle of Gen 14). The Elamite language is a language isolate — it fits the Table of Nations' assignment to Shem's unique line.", color:"#FFD700" },
+  asshur: { name:"Asshur (Assyria)", sub:"Son of Shem | Assyrians", verse:"Gen 10:22 | 2 Kgs 17:6 | Jonah 3", body:"Between Tigris & Euphrates. Capital: Nineveh (near modern Mosul, Iraq). Asshur was the national god of Assyria — the nation took its name from this son of Shem. The Assyrians were a Semitic people who spoke Akkadian. Sargon II took the Northern 10 tribes into captivity 722 BC — the 'Lost Tribes.' Yet the city of Nineveh repented under Jonah's preaching — the only mass Gentile repentance recorded in the OT. Assur (the city) was Assyria's first capital before Nineveh.", color:"#FFD700" },
+  arphaxad: { name:"Arphaxad (Chaldea/Babylon)", sub:"Son of Shem | Ancestor of Abraham", verse:"Gen 10:22,24 | Gen 11:10–26 | Luke 3:36", body:"Southern Mesopotamia — the Chaldean heartland. The covenantal lineage: Arphaxad → Shelah → Eber (root of 'Hebrew') → Peleg (in whose days the earth was divided) → Reu → Serug → Nahor → Terah → ABRAM. Arphaxad is the most significant name in Gen 10 for Israel's identity — through him runs the entire Messianic thread. 'Eber' is the ancestor of the Hebrews (the word 'Hebrew' = 'Ibri' = one who crosses over, or a descendant of Eber).", color:"#FFD700" },
+  lud: { name:"Lud (Lydia, Asia Minor)", sub:"Son of Shem | Lydians", verse:"Gen 10:22 | Isa 66:19 | Ezek 27:10", body:"Western Anatolia — modern western Turkey. Lydia was famous for its gold reserves; King Croesus of Lydia was proverbially wealthy. Ezekiel names Lud as warriors serving in Tyre's armies and in Egypt's forces. Isaiah 66:19 includes Lud in the list of nations who will see YHWH's glory and carry the message to the distant coastlands in the eschatological age. Some Lydians migrated to North Africa.", color:"#FFD700" },
+  aram: { name:"Aram (Syria)", sub:"Son of Shem | Arameans / Syrians", verse:"Gen 10:22–23 | Gen 25:20 | Deut 26:5", body:"Syria and northern Mesopotamia. Aram had four sons: Uz, Hul, Gether, and Mash — settling across the Syrian plateau and into southern Turkey. Aramaic (the language of Aram) became the international diplomatic language of the Near East — used in parts of Daniel and Ezra. Yeshua spoke Aramaic. Rebekah came from Aram-Naharaim. Jacob laboured in Aram for Laban 20 years. Deuteronomy 26:5 calls Jacob 'a wandering Aramean.' The Aramean connection runs deep through the patriarchal family.", color:"#FFD700" },
+  sheba_s: { name:"Sheba & Ophir (S. Arabia/Yemen)", sub:"Sons of Joktan (Shem's line) | Sabeans", verse:"Gen 10:28–29 | 1 Kgs 10:1–13 | Ps 72:10 | Matt 12:42", body:"Yemen and SW Arabia. The Queen of Sheba (known as Makeda in Ethiopian and Bilqis in Arab tradition) visited Solomon with an enormous caravan of gold, spices, and hard questions. Yeshua called her 'Queen of the South' who 'came from the ends of the earth to hear the wisdom of Solomon' and declared 'something greater than Solomon is here' (Matt 12:42). Ophir supplied the massive quantities of gold for Solomon's Temple (1 Kgs 9:28) — 420 talents in one shipment. The location of Ophir remains debated: SW Arabia, East Africa (Zimbabwe/Sofala), or even India.", color:"#FFD700" },
+  cush: { name:"Cush (Ethiopia/Nubia/Sudan)", sub:"Son of Ham | Cushites → East Africans", verse:"Gen 10:6–8 | Num 12:1 | Ps 68:31 | Acts 8:27", body:"Upper Nile — modern Sudan, Ethiopia, Eritrea. The Cushite kingdom of Nubia was Egypt's equal and sometimes superior in power. Moses married a Cushite woman — when Miriam and Aaron objected, Yah struck Miriam with leprosy (Num 12). The Ethiopian eunuch (treasurer of Queen Candace) was reading Isaiah 53 in his chariot when Philip found him — he was baptised and carried the Gospel to Africa. Ps 68:31: 'Cush shall hasten to stretch out her hands to Yah' — a prophecy of African spiritual awakening. Nimrod (first empire builder) was Cush's son.", color:"#66BB6A" },
+  mizraim: { name:"Mizraim (Egypt)", sub:"Son of Ham | Egyptians", verse:"Gen 10:6,13–14 | Exod 1 | Isa 19:24–25", body:"The Hebrew name for Egypt used 680+ times in the OT. One of the greatest civilisations in human history. Joseph was sold into Egypt and became its prime minister. Israel's 430-year sojourn here — followed by the Exodus, the defining event of Hebrew identity. Isaiah 19:24–25 gives an astonishing prophecy: Egypt will be called 'my people' by YHWH alongside Israel — a future restoration of Ham's Egyptian line. The Philistines descend from Mizraim (through Kasluhites, Gen 10:14).", color:"#66BB6A" },
+  put: { name:"Put (Libya/North Africa)", sub:"Son of Ham | Libyans", verse:"Gen 10:6 | Ezek 27:10 | Nah 3:9 | Jer 46:9", body:"Libya and the North African Mediterranean coast west of Egypt. Put warriors appear as mercenaries in Egyptian and Carthaginian armies throughout Scripture. Nahum 3:9 mentions Put as a strength of Nineveh. Ezekiel 27:10 lists Put among Tyre's fighting men. Some scholars extend Put's territory to include Somalia and the ancient Egyptian 'Land of Punt' on the East African coast, making Put's descendants possibly spread from Libya to the Horn of Africa.", color:"#66BB6A" },
+  canaan: { name:"Canaan (The Promised Land)", sub:"Son of Ham | Under Noah's curse | Land given to Israel", verse:"Gen 9:25 | Gen 10:15–19 | Gen 15:18–21 | Deut 7:1", body:"Noah's curse: 'Cursed be Canaan; a servant of servants shall he be.' The LAND of Canaan — from Sidon in the north to Gaza in the south, inland to Sodom — was covenantally deeded to Abraham's seed (Gen 15:18). Canaan's sons include: Sidon (Phoenicia), Heth (Hittites), the Jebusites (Jerusalem's pre-Davidic inhabitants), Amorites, Girgashites, Hivites, Arkites, Sinites, Arvadites, Zemarites, Hamathites. Joshua's conquest fulfilled the covenant. IMPORTANT: The curse was on Canaan specifically — NOT on Ham's African sons Cush, Mizraim, or Put. Colonial theology deliberately blurred this to justify African enslavement — a scriptural distortion with devastating historical consequences.", color:"#66BB6A" },
+  nimrod_babel: { name:"Nimrod — First World-Empire Builder", sub:"Son of Cush (Ham's line) | Babylon founder", verse:"Gen 10:8–12 | Mic 5:6 | Rev 17–18", body:"Cush's son. 'He began to be a mighty man [gibbor] on the earth.' The name Nimrod likely derives from the Hebrew root MRD meaning 'to rebel' — 'Let us rebel.' He was 'a mighty hunter BEFORE [or: against] YHWH' — the phrase implies opposition to Yah, not service. Founded: Babel, Erech (Uruk), Akkad, Calneh in Shinar — the world's first empire. Then went to Assyria and built Nineveh. Jewish tradition (Targum Pseudo-Jonathan) names him as the builder of the Tower of Babel. Micah 5:6 calls Assyria 'the land of Nimrod.' In Revelation, Babylon (his city) is the symbol of all godless human empire — Mystery Babylon — which is ultimately destroyed by Yah.", color:"#FF6D00" },
+  gomer: { name:"Gomer (Cimmerians/Germanic)", sub:"Son of Japheth | Cimmerians → Western Europeans", verse:"Gen 10:2–3 | Ezek 38:6 | Josephus Ant. 1.6.1", body:"Eldest son of Japheth. Josephus: 'Gomer founded those whom the Greeks now call Galatians [Gauls], but were then called Gomerites.' Settled initially north of Black Sea — the Crimea preserves the name (Crim-meria). Pushed westward through history into modern Germany, France, Spain, and the British Isles. Sons: Ashkenaz (Germanic/Scythian — the word 'Ashkenaz' in medieval Jewish usage = Germany), Riphath, Togarmah (Armenia, Turkey, Central Asian Turkic peoples). Gomer appears in Ezekiel 38:6 in the Gog-Magog coalition.", color:"#42A5F5" },
+  magog: { name:"Magog (Scythia/Northern Steppe)", sub:"Son of Japheth | Scythians → Slavic/Russian peoples", verse:"Gen 10:2 | Ezek 38–39 | Rev 20:8", body:"Josephus: 'Magog founded those that from him were named Magogites, but who are by the Greeks called Scythians.' The great steppe north of the Caucasus and Caspian — modern southern Russia and Central Asia. Ezekiel 38–39 is the great prophetic text about 'Gog of the land of Magog, chief prince of Meshech and Tubal' leading a massive northern coalition against Israel in the last days. Revelation 20:8 confirms this is an end-times event. Many scholars identify the Rus/Slavic peoples and modern Russia with Magog.", color:"#42A5F5" },
+  madai: { name:"Madai (Media/Iran)", sub:"Son of Japheth | Medes → Iranians", verse:"Gen 10:2 | Dan 5:28 | Dan 8:20 | Esth 1:3", body:"NW Iran, south of the Caspian Sea. Capital: Ecbatana (modern Hamadan). The Medes allied with the Babylonians to destroy Nineveh in 612 BC. Then the Medo-Persian empire under Cyrus overthrew Babylon in a single night (Dan 5). 'The law of the Medes and Persians which changes not' (Dan 6:8) — an irrevocable legal tradition. The Book of Jubilees says Madai married a daughter of Shem and by agreement settled in Shem's territory — hence Madai appears in Japheth's list but geographically overlaps Shem's region.", color:"#42A5F5" },
+  javan: { name:"Javan (Greece/Ionia)", sub:"Son of Japheth | Ionians → Greeks", verse:"Gen 10:2,4–5 | Dan 8:21 | Joel 3:6 | John 12:20–21", body:"The Hebrew word 'Yavan' (Javan) is used throughout the OT for Greece. Sons: Elishah (S. Greece), Tarshish (Iberia), Kittim (Cyprus/Rome), Rodanim (Rhodes). Daniel 8:21 explicitly identifies the 'goat' in his vision as the king of Greece (Yavan) — fulfilled in Alexander the Great. Joel 3:6 accuses the Tyrians of selling Israelite children to the Javanim (Greeks). The 'Greeks' who came to see Yeshua (John 12:20) were descendants of Javan — Japheth entering Shem's tent, as Noah's blessing prophesied.", color:"#42A5F5" },
+  tubal: { name:"Tubal", sub:"Son of Japheth | Tabali/Caucasian peoples", verse:"Gen 10:2 | Ezek 38:2–3 | Ezek 39:1", body:"SE Black Sea coast — modern NE Turkey and Georgia. Known in Assyrian records as the Tabali. Always paired with Meshech in Ezekiel's Gog-Magog prophecy. Josephus linked Tubal to the Iberians of the Caucasus (not Iberian Spain). Some traditions connect Tubal to the Italians (via Italic tribes) and the Iberian peninsula. Part of the end-times northern coalition in Ezekiel 38.", color:"#42A5F5" },
+  meshech: { name:"Meshech", sub:"Son of Japheth | Mushki → Slavic/Muscovite peoples", verse:"Gen 10:2 | Ezek 38:2 | Ps 120:5", body:"NE Anatolia. Known in Assyrian records as the Mushki. Josephus: Meshech founded the Cappadocians. Later associated by many scholars with the Muscovites/Moscow and the Slavic peoples broadly. Psalm 120:5 — 'Woe to me that I sojourn in Meshech.' Always appears with Tubal in prophetic literature as part of Gog's coalition (Ezek 38). The pairing of Meshech-Tubal appears in Assyrian annals confirming these were distinct neighbouring peoples in Anatolia.", color:"#42A5F5" },
+  tiras: { name:"Tiras", sub:"Son of Japheth | Thracians / Sea Peoples", verse:"Gen 10:2", body:"Josephus identified Tiras with the Thracians — inhabiting modern Bulgaria, Romania, and NW Turkey. The Book of Jubilees says Tiras inherited 'four great islands in the ocean.' Some associate Tiras with the 'Tyrsenoi' (Etruscans) of Italy, or the 'Tersh' among the Sea Peoples who attacked Egypt in the 13th century BC. Tiras is the least-documented of Japheth's sons in extra-biblical sources, possibly because his descendants merged early into broader European populations.", color:"#42A5F5" },
+  tarshish: { name:"Tarshish (Southern Spain)", sub:"Son of Javan (Japheth) | Iberian coastal peoples", verse:"Gen 10:4 | Jonah 1:3 | 1 Kgs 10:22 | Ps 72:10", body:"Almost certainly Tartessos in southern Spain — the westernmost known port of the ancient Mediterranean world. The maximum distance from Nineveh — which is why Jonah bought passage there (the opposite direction from Yah's command). Solomon's 'ships of Tarshish' with Hiram's Phoenician sailors made 3-year voyages bringing gold, silver, ivory, apes, and peacocks (1 Kgs 10:22). Psalm 72:10 prophesies that the kings of Tarshish will bring tribute to the Messianic king. Isaiah 66:19 includes Tarshish among nations who will hear of Yah's glory in the last days.", color:"#42A5F5" },
+};
+
+const SITES = {
+  ararat: { name:"Mt. Ararat — Ark's Landing", sub:"Primordial Era", verse:"Gen 8:4 | Modern Turkey/Armenia border (39.7°N, 44.3°E)", body:"'The ark came to rest on the mountains of Ararat' (Gen 8:4) after 150 days. The traditional peak (Büyük Ağrı Dağı) stands 5,165m — the highest point in Turkey. Noah left the ark after a total of about a year aboard. His first act: built an altar and offered burnt offerings. Yah's response: the Noahic covenant — rainbow, never again a world flood. From this mountain three sons dispersed to repopulate the entire earth." },
+  babel: { name:"Tower of Babel / Shinar", sub:"Primordial Era", verse:"Gen 11:1–9 | Southern Iraq (near Babylon)", body:"After the flood, humanity settled in the plain of Shinar and attempted to build a city and tower 'to the heavens' — to make a name for themselves and NOT scatter across the earth (directly disobeying Gen 9:1). YHWH descended, confused their language, and scattered them. This is the originating event behind the Table of Nations. The scattered groups became the 70 nations of Genesis 10. Archaeologically, the great ziggurat of Babylon (Etemenanki) is likely the physical structure tradition associated with this event." },
+  ur: { name:"Ur of the Chaldees", sub:"Patriarchal Era", verse:"Gen 11:28–12:1 | Tell el-Muqayyar, S. Iraq", body:"Abraham's birthplace. Excavations by Leonard Woolley (1922–34) revealed a sophisticated Sumerian city with a massive ziggurat dedicated to the moon god Nanna. The 'Royal Cemetery' showed that servants were buried alive with royalty — the culture of death-worship Yah called Abram out of. Stephen's speech (Acts 7:2–3) confirms Yah appeared to Abraham 'while he was in Mesopotamia, BEFORE he lived in Haran.'" },
+  haran: { name:"Haran", sub:"Patriarchal Era", verse:"Gen 11:31–12:4 | Modern Şanlıurfa province, SE Turkey", body:"Terah took the family from Ur heading toward Canaan but stopped at Haran — perhaps because it also had a moon-god temple (Sin), making it culturally familiar. Terah died here at 205. Yah reissued the call to Abram at 75. Jacob fled here from Esau, served Laban (his uncle) 7 years for Rachel, was deceived with Leah, served 7 more years for Rachel, then 6 more for flocks. 20 total years. His 12 sons — the 12 tribes of Israel — were all born in or near Haran." },
+  shechem: { name:"Shechem", sub:"Patriarchal & Covenant Era", verse:"Gen 12:6 | Gen 33:18 | Josh 24:1 | John 4:5", body:"First Canaanite city Abraham entered after arriving from Haran. Yah appeared here: 'To your offspring I will give this land' — the first land promise. Abraham built an altar. Jacob bought land here and also built an altar (Gen 33:20). Joshua's covenant renewal at Shechem (Josh 24) was the constitutional moment of Israel as a people under the covenant. Yeshua met the Samaritan woman at Jacob's Well — still at Shechem (John 4) — and declared himself the source of living water." },
+  hebron: { name:"Hebron / Mamre", sub:"Patriarchal Era", verse:"Gen 13:18 | 18:1 | 23:2 | 35:27", body:"Abraham's permanent base of operations. The Oaks/Terebinths of Mamre — where three divine visitors appeared and announced Isaac's birth and Sodom's coming destruction. Abraham bargained with Yah over Sodom (Gen 18:22–33) — the great intercessory dialogue. The Cave of Machpelah, purchased from Ephron the Hittite for 400 shekels of silver, became the patriarchal tomb: Abraham & Sarah, Isaac & Rebekah, Jacob & Leah all buried here. The site is still accessible in the Cave of Machpelah / Ibrahimi Mosque in modern Hebron." },
+  sodom: { name:"Sodom & Gomorrah", sub:"Patriarchal Era", verse:"Gen 13:12 | 19:24–25 | Luke 17:29 | 2 Pet 2:6", body:"YHWH rained fire and brimstone (sulphur) from heaven on these cities. Lot's wife looked back — became a pillar of salt. Four cities of the plain (also Admah and Zeboiim, Deut 29:23) were destroyed. Archaeological candidate: Tall el-Hammam in Jordan (NE of Dead Sea) — Ron Wyatt and others also proposed sites under the S. end of the Dead Sea. Recent research (2021, Nature) found evidence of a massive cosmic airburst event over the Jordan Valley ~1650 BC that matches the biblical description." },
+  moriah: { name:"Mt. Moriah / Temple Mount", sub:"Patriarchal & Monarchy Eras", verse:"Gen 22:2 | 2 Chr 3:1 | John 3:16", body:"'Take your son, your only son Isaac whom you love, and go to the land of Moriah, and offer him there as a burnt offering.' The 3-day journey, the wood on Isaac's back, the question 'Where is the lamb?', the binding — and the angel stopping the knife. A ram provided instead. Abraham named the place 'YHWH Yireh' — Yah will provide/see. 2 Chr 3:1 explicitly identifies this as the site where Solomon built the Temple. The same mountain where the substitute was provided is where the ultimate substitute — Yeshua — was offered outside the city walls." },
+  beersheba: { name:"Beersheba", sub:"Patriarchal Era", verse:"Gen 21:31 | 26:23 | 46:1 | Amos 5:5", body:"'Well of the oath' or 'Well of seven' — Abraham covenanted with Abimelech here and planted a tamarisk tree. Isaac also covenanted here. Jacob met Yah in a vision here before descending to Egypt: 'I am God, the God of your father. Do not be afraid to go down to Egypt, for I will make you into a great nation there.' The phrase 'from Dan to Beersheba' marks the full north-south extent of the Promised Land. Beersheba is in the Negev — the southernmost inhabited city of ancient Israel." },
+  peniel: { name:"Peniel (Jabbok River)", sub:"Patriarchal Era", verse:"Gen 32:24–30 | Hos 12:3–4", body:"Jacob, returning from Laban, sent his family ahead and was left alone. A man wrestled with him until daybreak — touched his hip socket (dislocating it), then blessed him and renamed him Israel: 'You have striven with God and with men, and have prevailed.' Jacob named the place Peniel ('Face of God') — 'for I have seen God face to face, and yet my life has been delivered.' From this point Jacob walked with a limp — his weakness became his mark of encounter. Hosea 12:3–4 reflects on this as a defining moment." },
+  goshen: { name:"Land of Goshen", sub:"Exodus Era", verse:"Gen 47:6 | Exod 8:22 | Exod 12:13", body:"NE Nile Delta — identified with the Wadi Tumilat region and modern Qantir/Tell el-Dab'a area (ancient Avaris/Pi-Rameses). Joseph settled Jacob's 70-person family here in the best land of Egypt. Over 430 years, Israel grew from 70 to a population estimated between 600,000 and 2–3 million. Goshen was shielded from the plagues: no flies (Exod 8:22), no darkness (Exod 10:23), no death of firstborn (Exod 12:13 — the blood on the doorposts). Divine distinction between Israel and Egypt anticipated the spiritual distinction between the redeemed and the world." },
+  sinai: { name:"Mt. Sinai / Horeb", sub:"Exodus Era", verse:"Exod 3:1–2 | 19–20 | 1 Kgs 19:8–12 | Gal 4:25", body:"The Mountain of Yah. Moses' burning bush encounter here. The Ten Commandments given. The Tabernacle blueprint revealed. Elijah fled here after Jezebel's threat — 40 days and nights without food — and heard Yah in the still small voice. Called both 'Sinai' and 'Horeb' in Scripture. Traditional location: Jebel Musa in Sinai Peninsula. Alternative: Jebel al-Lawz in NW Saudi Arabia (Paul in Gal 4:25 says 'Sinai is a mountain in Arabia' — consistent with ancient Midian being modern NW Saudi Arabia). This remains an open geographic question." },
+  redSea: { name:"Sea Crossing (Yam Suph)", sub:"Exodus Era", verse:"Exod 14:21–22 | Ps 136:13–15 | 1 Cor 10:1–2", body:"YHWH drove the sea back with a strong east wind all night, and the Israelites walked through on dry ground with walls of water on both sides. Pharaoh's entire chariot army drowned. 'Yam Suph' = Reed Sea or Red Sea. Location debated: Gulf of Suez crossing (traditional), or crossing at the Straits of Tiran into Midian, or through the shallow northern end of the Sinai Peninsula. Miriam and all the women danced and sang after the crossing. Paul calls this event a 'baptism' in 1 Cor 10:1–2 — Israel's passing through water as a type of new life." },
+  kadesh: { name:"Kadesh-Barnea", sub:"Exodus/Wilderness Era", verse:"Num 13:26 | Num 14:34 | Deut 2:14", body:"The 12 spies returned here after 40 days scouting Canaan. Ten gave an evil report — the people wept and refused to enter. Yah declared: 40 years in the wilderness — one year for each day of spying. Only Caleb and Joshua entered the promised land from that generation. Kadesh was Israel's main wilderness camp — they stayed here for most of the 40 years. Located in the Negev — Israel's southern boundary (Num 34:4)." },
+  nebo: { name:"Mt. Nebo / Pisgah", sub:"Exodus Era", verse:"Deut 34:1–5 | Jude 1:9", body:"Moses climbed here at 120 years old — 'his eye was undimmed and his vigor undiminished.' YHWH showed him the entire Promised Land: Gilead to Dan, Naphtali, Ephraim, Manasseh, Judah to the Sea, the Negev, the Valley of Jericho. Then Moses died — buried by YHWH himself. 'No man knows the place of his burial to this day.' The unmarked grave prevented the site from becoming an idol. Jude 1:9 reveals a cosmic dispute: the Archangel Michael disputed with the devil about Moses' body — suggesting the enemy wanted the location known for dark purposes." },
+  jericho: { name:"Jericho", sub:"Conquest Era", verse:"Josh 6:20 | Heb 11:30 | Matt 20:29", body:"The first battle of the conquest of Canaan. Israel marched silently around the city once a day for 6 days, 7 times on the 7th day, then the priests blew the shofar and the people shouted — the walls collapsed. Not conventional warfare: pure faith-obedience. Rahab the Canaanite prostitute hid the spies and was saved by her scarlet cord — she married Salmon and bore Boaz (Matt 1:5) — in the Messianic lineage. Archaeological evidence from Kathleen Kenyon's excavations at Tell es-Sultan shows burned destruction layers consistent with biblical dating." },
+  shiloh: { name:"Shiloh", sub:"Judges Era", verse:"Josh 18:1 | 1 Sam 1:3 | Jer 7:12", body:"The Tabernacle rested here for approximately 300–400 years after the conquest — Israel's central worship site before Jerusalem. Hannah prayed here in bitter anguish for a child — Eli the priest thought she was drunk. Samuel was called by YHWH here at night (1 Sam 3). The Philistines eventually captured the Ark here. Jeremiah warned Jerusalem: 'Go to Shiloh and see what I did there because of the wickedness of my people Israel' — Yah abandoned Shiloh as a warning that He could abandon Jerusalem too." },
+  gilgal: { name:"Gilgal", sub:"Conquest Era", verse:"Josh 4:19–20 | Josh 5:9 | 1 Sam 11:15", body:"First campsite after crossing the Jordan. Joshua set up 12 memorial stones from the river — one per tribe. Yah said 'Today I have rolled away the reproach of Egypt from you' — naming the place Gilgal ('rolling'). The circumcision of the entire generation born in the wilderness was performed here. Saul was crowned king at Gilgal. Samuel had a circuit including Gilgal. Later it became a site of apostasy — Amos and Hosea condemned 'the sin of Gilgal.'" },
+  jerusalem: { name:"Jerusalem / Zion — City of the Great King", sub:"Monarchy through NT Eras | Most mentioned city in the Bible", verse:"2 Sam 5:6–7 | 1 Kgs 6:1 | Ps 48:2 | Ps 87:2 | Rev 21:2", body:"Captured by David from the Jebusites ~1000 BC (it was previously Jebus). David brought the Ark of the Covenant here — making it the spiritual capital. Solomon built the First Temple on Mt. Moriah ~966 BC. Destroyed by Nebuchadnezzar 587 BC. Second Temple built 516 BC. Herod's expansion ~20 BC. Yeshua's triumphal entry, cleansing the Temple, Last Supper, arrest, trial, crucifixion, resurrection, and ascension all centred in or around Jerusalem. The city appears 800+ times in the Bible. In Revelation 21, the New Jerusalem descends from heaven — the ultimate fulfilment of all that this city represents." },
+  bethlehem: { name:"Bethlehem (Ephrath)", sub:"Patriarchal through NT Eras", verse:"Ruth 1:19 | 1 Sam 16:1 | Mic 5:2 | Matt 2:1", body:"City of David. Rachel died near here (Gen 35:19). Ruth and Boaz married here — their great-grandson was David. Samuel anointed David king here from among Jesse's sons — youngest, overlooked, ruddy, a shepherd. Micah's prophecy ~700 BC: 'But you, Bethlehem Ephrathah, who are too little to be among the clans of Judah, from you shall come forth for me one who is to be ruler in Israel, whose coming forth is from of old, from ancient days' (Mic 5:2). Fulfilled in Yeshua's birth." },
+  samaria: { name:"Samaria", sub:"Monarchy Era", verse:"1 Kgs 16:24 | 2 Kgs 17:6 | John 4:9", body:"Capital of the Northern Kingdom (Israel/Ephraim). Founded by King Omri on a hill purchased for 2 talents of silver. Ahab and Jezebel enthroned Baal worship here. Elijah confronted this culture. The Assyrian king Sargon II conquered Samaria in 722 BC and deported the 10 northern tribes — the 'Lost Tribes' of Israel. Resettled with peoples from Babylon, Cuthah, Avva, Hamath, and Sepharvaim — the origin of the mixed 'Samaritan' people. Yeshua spoke with the Samaritan woman at Jacob's Well (John 4)." },
+  nineveh: { name:"Nineveh (Capital of Assyria)", sub:"Monarchy Era | Jonah | Nahum", verse:"Gen 10:11 | Jonah 3:3 | 2 Kgs 19:36 | Nah 1:1", body:"Built by Nimrod (Gen 10:11) and later by Assyrian kings. 'That great city' (Jonah 4:11) with 120,000+ people. Jonah preached repentance — the entire city, from king to cattle, repented in sackcloth and ashes. Yah relented. Yeshua called this the sign of Jonah — his 3-day resurrection matching Jonah's 3 days in the fish (Matt 12:40–41). Sennacherib besieged Jerusalem ~701 BC — 185,000 Assyrian soldiers were struck dead overnight by the Angel of YHWH. Nineveh fell 612 BC to the Babylonian-Median coalition, fulfilling Nahum's prophecy exactly." },
+  babylon2: { name:"Babylon", sub:"Exile Era | Type of World-System", verse:"2 Kgs 25:1 | Dan 1:1–3 | Jer 29:4–7 | Rev 17–18", body:"Nebuchadnezzar destroyed Jerusalem and the Temple in 587 BC — the lowest point in Israel's history. 70-year captivity as Jeremiah prophesied. Daniel interpreted Nebuchadnezzar's dreams and visions. The fiery furnace — Shadrach, Meshach, Abednego refused to bow. The lion's den — Daniel refused to stop praying. Belshazzar's feast — the handwriting on the wall. Babylon fell to Cyrus/the Medes and Persians in 539 BC — in a single night (Dan 5). In Revelation, 'Babylon' is the code name for the end-times city/empire of godless power — built on commerce, sorcery, and the blood of the prophets (Rev 17–18)." },
+  damascus: { name:"Damascus", sub:"Monarchy through NT Eras", verse:"Gen 14:15 | 1 Kgs 19:15 | Isa 17:1 | Acts 9:2–6", body:"Possibly the world's oldest continuously inhabited city (3000+ BC). Abraham pursued the kings who captured Lot 'as far as Hobah, north of Damascus' (Gen 14:15). Elijah was told to anoint Hazael as king of Syria at Damascus (1 Kgs 19:15). Isaiah prophesied Damascus's destruction (Isa 17:1) — fulfilled by Assyria. Paul (Saul) was travelling to Damascus to arrest Christians when he was struck blind by the risen Yeshua (Acts 9). He spent 3 days fasting and blind in Damascus, then was healed by Ananias and began his ministry there." },
+  tyre: { name:"Tyre (Phoenicia)", sub:"Monarchy Era", verse:"1 Kgs 5:1 | Ezek 26–28 | Matt 11:21–22", body:"Hiram king of Tyre supplied cedar logs and gold for Solomon's Temple and Palace (1 Kgs 5:10–12). Tyre was the commercial capital of the ancient Mediterranean — a master seafaring and trading people. Ezekiel 26–28 contains the most detailed prophecy of a city's destruction in the OT: Tyre would be made bare like a rock, its stones and timber thrown into the sea, it would become a place for spreading nets, never to be rebuilt. Alexander the Great in 332 BC built a causeway using the rubble of old Tyre thrown into the sea — fulfilling Ezekiel exactly. The island city was never fully rebuilt." },
+  susa: { name:"Susa (Shushan)", sub:"Exile Era", verse:"Esth 1:2 | Neh 1:1 | Dan 8:2", body:"Persian royal winter capital. All of Esther's story takes place here — Haman's genocide plot, Mordecai's intercession, Esther's 3-day fast and royal approach, Haman's execution on his own gallows. Nehemiah served as cupbearer to Artaxerxes I at Susa — when he heard of Jerusalem's broken walls, he wept and prayed for days, then received royal permission to rebuild. Daniel received his ram-and-goat vision 'beside the Ulai canal' at Susa (Dan 8:2) — the ram was Persia, the goat was Greece (fulfilled by Alexander). Susa was excavated by French archaeologists and the Apadana palace (where Xerxes held his 180-day feast) has been partly recovered." },
+  carmel: { name:"Mt. Carmel", sub:"Monarchy Era", verse:"1 Kgs 18:19–40", body:"The confrontation: Elijah vs. 450 prophets of Baal and 400 prophets of Asherah — all on Mount Carmel by the Mediterranean. The prophets of Baal cried from morning to noon with no answer, then cut themselves until blood flowed. Elijah rebuilt the broken altar with 12 stones (one per tribe), dug a trench, had 12 jars of water poured over the offering three times, then prayed simply. Fire fell from YHWH and consumed the offering, wood, stones, dust, and all the water. The people fell: 'YHWH, He is God!' All 450 prophets of Baal were executed. The 3.5-year drought ended that same day with rain." },
+  jordan: { name:"Jordan River", sub:"Conquest & NT Eras", verse:"Josh 3:14–17 | 2 Kgs 5:14 | Matt 3:13–17", body:"Israel crossed on dry ground as the priests bearing the Ark stepped in — the water piled up in a heap at Adam (a city upstream). 12 stones memorial set at Gilgal. Naaman the Syrian commander was healed of leprosy by dipping 7 times (2 Kgs 5:14). John the Baptist baptised multitudes here. Yeshua was baptised by John: the heavens opened, the Spirit descended as a dove, and the Father's voice declared 'This is my beloved Son in whom I am well pleased.' The Jordan — a crossing point of death into new life — became the defining symbol of baptism." },
+  nazareth: { name:"Nazareth", sub:"New Testament Era", verse:"Matt 2:23 | Luke 4:16–21 | John 1:46", body:"Yeshua grew up here for approximately 30 years — the longest period of his life. 'He went to the synagogue, as was his custom on the Sabbath day, and he stood up to read.' He read Isaiah 61:1–2 ('The Spirit of YHWH is upon me...'), rolled it up, sat down, and declared: 'Today this Scripture is fulfilled in your hearing.' The crowd was first amazed, then furious — and tried to throw him off a cliff. Nathanael's famous question: 'Can anything good come from Nazareth?' — the town was despised even by other Galileans. Yet it was chosen as the Messiah's hometown." },
+  galilee: { name:"Sea of Galilee (Lake Kinneret)", sub:"New Testament Era", verse:"Matt 4:18–22 | Matt 8:26 | Matt 14:25 | John 21:1", body:"14km long, 8km wide, 209m below sea level — the lowest freshwater lake on earth. Yeshua called Peter, Andrew, James, and John from their fishing boats here ('Follow me and I will make you fishers of men'). Calmed a life-threatening storm with the command 'Peace, be still.' Walked on water to reach the disciples in a boat at night — Peter also walked until he looked at the waves. Fed 5,000 on its north shore. Post-resurrection breakfast appearance here (John 21) — 153 fish, the charcoal fire, the triple restoration of Peter." },
+  capernaum: { name:"Capernaum", sub:"New Testament Era", verse:"Matt 4:13 | Mark 2:1 | Luke 7:1–10", body:"Yeshua's ministry headquarters after leaving Nazareth. Peter's home was here. The paralytic was let through the roof by his four friends — Yeshua declared his sins forgiven and healed him (Mark 2:1–12). A Roman centurion built the synagogue here and asked for healing for his servant — 'I have not found such faith even in Israel' (Luke 7:9). Yeshua pronounced judgment on Capernaum for its unbelief despite the mighty works: 'You will be brought down to Hades' (Matt 11:23). The ruins of Capernaum are now an archaeological site with the remains of a 4th-century synagogue built over what is believed to be the original." },
+  caesarea: { name:"Caesarea Maritima", sub:"New Testament Era", verse:"Acts 10:1 | Acts 21:8 | Acts 23:33", body:"Herod the Great's showpiece port city — a magnificent Hellenistic-Roman city with an artificial harbour. Cornelius the Roman centurion lived here — Peter received his vision of the clean/unclean animals and went to Cornelius, where the Holy Spirit fell on the Gentiles before Peter even finished speaking (Acts 10). Paul passed through multiple times, was imprisoned here for 2 years under Felix and Festus, made his defence before King Agrippa ('Almost you persuade me to become a Christian' — Acts 26:28), and appealed to Caesar here — setting in motion his journey to Rome." },
+  antioch: { name:"Antioch (Syria)", sub:"New Testament Era | Paul's Base", verse:"Acts 11:26 | Acts 13:1–3 | Gal 2:11", body:"Third largest city in the Roman Empire after Rome and Alexandria. Believers were first called 'Christians' (Christianoi — 'followers of the Christ/Anointed') here — likely as a mocking nickname adopted by the church. Paul's missionary base for all three journeys. The Jerusalem Council's letter on Gentile freedom was addressed to Antioch. Paul publicly opposed Peter (Cephas) here 'to his face' over table fellowship with Gentiles (Gal 2:11) — the first recorded theological confrontation in church history." },
+  athens: { name:"Athens", sub:"New Testament Era", verse:"Acts 17:16–34", body:"The intellectual capital of the ancient world. Paul 'was provoked within him as he saw the city was full of idols.' He reasoned in the synagogue and the marketplace daily. Epicurean and Stoic philosophers brought him to the Areopagus (Mars Hill) — the traditional court of philosophy and religion. His sermon is one of the most theologically sophisticated in Acts: quoting Greek poets ('In him we live and move and have our being' — Aratus), arguing from creation, declaring the resurrection. Most mocked. But Dionysius the Areopagite (a court member) and Damaris believed — the Gospel conquered philosophy's capital." },
+  corinth: { name:"Corinth", sub:"New Testament Era", verse:"Acts 18:1–18 | 1 Cor 1:1 | 2 Cor 1:1", body:"Wealthy, cosmopolitan, morally notorious — the city of Aphrodite. Paul stayed 18 months — his longest stay in one city. Aquila and Priscilla (Jewish tentmakers expelled from Rome by Claudius) became key co-workers. The church Paul planted was vibrant but troubled — division, sexual immorality, lawsuits between members, abuse of the Lord's Supper, confusion about spiritual gifts and the resurrection. 1 & 2 Corinthians address all of this. Paul's famous 'love chapter' (1 Cor 13) was written to a church that had almost everything except love." },
+  ephesus: { name:"Ephesus", sub:"New Testament Era", verse:"Acts 19 | Eph 1:1 | Rev 2:1–7", body:"Largest city in Asia Minor, home of the Temple of Artemis (Diana) — one of the Seven Wonders of the ancient world. Paul's 3-year ministry here was the longest of any city. 'All who lived in Asia heard the word' (Acts 19:10). Extraordinary miracles. Silversmiths rioted because commerce in Artemis idols collapsed. John the Apostle settled here and is said to have brought Mary (Yeshua's mother) here. John's Gospel and his three epistles were written here. First of the seven churches of Revelation — praised for its works but rebuked for 'leaving your first love.'" },
+  rome: { name:"Rome — Capital of the Empire", sub:"New Testament Era", verse:"Acts 28:16 | Rom 1:7 | Phil 4:22 | Rev 17", body:"Paul arrived in chains after being shipwrecked on Malta — and spent 2 years under house arrest preaching freely to all who came. Both Paul and Peter were martyred here under Emperor Nero (~64–68 AD). Paul's Epistle to the Romans — written from Corinth before his arrival — is the most comprehensive systematic theological letter ever written. The church in Rome existed before any apostle arrived (Acts 2 — Roman Jews were present at Pentecost). In Revelation, Rome is 'Babylon the Great, Mother of Prostitutes' — the city on seven hills drunk with the blood of the saints." },
+  philippi: { name:"Philippi — Gospel First in Europe", sub:"New Testament Era", verse:"Acts 16:11–40 | Phil 1:1", body:"Paul's vision of a Macedonian man ('Come over and help us') led him from Asia to Europe — a pivotal moment in history. At the riverside prayer place outside the city, Lydia — a businesswoman dealing in purple cloth from Thyatira — opened her heart and was baptised with her household: the first recorded European Christian convert. Paul and Silas were beaten and jailed. At midnight they sang hymns. An earthquake opened all doors and loosed all chains. The jailer, about to kill himself, was stopped — he and his entire household believed and were baptised that same night." },
+  patmos: { name:"Patmos — The Island of Revelation", sub:"New Testament Era", verse:"Rev 1:9–11", body:"A small rocky volcanic island in the Aegean, 10km wide. John was exiled here by Emperor Domitian (~95–96 AD) — the Roman equivalent of a penal colony. 'I, John, your brother and partner in the tribulation and the kingdom and the patient endurance that are in Yeshua, was on the island called Patmos on account of the word of God and the testimony of Yeshua.' 'I was in the Spirit on the Lord's Day, and I heard behind me a loud voice like a trumpet.' The entire Book of Revelation was received and written here — the last word of Scripture, from the most isolated place the empire could find. Yah's final message came from the margins." },
+  alexandria: { name:"Alexandria (Egypt)", sub:"New Testament Era | Jewish Diaspora", verse:"Acts 6:9 | Acts 18:24 | LXX origin ~250 BC", body:"Founded by Alexander the Great in 331 BC. Home to one of the Seven Wonders (the Lighthouse) and the greatest library of the ancient world. The Jewish population was enormous — perhaps 1 million Jews, with their own quarter and synagogues. The Septuagint (LXX) — the Greek translation of the Hebrew Scriptures — was produced here, making the Word of Yah accessible to the entire Greek-speaking world. Apollos, 'an eloquent man, competent in the Scriptures' (Acts 18:24), came from Alexandria. The Alexandrian church became major — Clement of Alexandria, Origen, and Athanasius all worked here." },
+  carthage_site: { name:"Carthage (North Africa)", sub:"NT / Early Church Era", verse:"Acts 2:10 | North Africa tradition", body:"Major Phoenician-founded city near modern Tunis, Tunisia. One of the greatest cities of the ancient Mediterranean world before Rome destroyed it in 146 BC and rebuilt it. North Africa produced some of the most significant early church voices: Tertullian (first to use the term 'Trinity' and write theology in Latin), Cyprian (bishop and martyr), and most significantly Augustine of Hippo (354–430 AD) — whose Confessions and City of God shaped all of Western Christianity. Acts 2:10 mentions people from 'Libya belonging to Cyrene' at Pentecost — North Africans received the Spirit that day." },
+};
+
+// ── STATE & INTERACTION ──
+let currentFilter = 'all';
+let svgTransform = { scale: 1, tx: 0, ty: 0 };
+let isPanning = false;
+let lastTouch = null;
+let lastPinchDist = null;
+
+function showTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.scroll-panel, #map-container').forEach(p => {
+    p.classList.remove('active');
+    p.style.display = 'none';
+  });
+  event.target.classList.add('active');
+
+  if (tab === 'map') {
+    const mc = document.getElementById('map-container');
+    mc.classList.add('active');
+    mc.style.display = 'block';
+  } else if (tab === 'nations') {
+    const p = document.getElementById('nations-panel');
+    p.classList.add('active');
+    p.style.display = 'flex';
+  } else if (tab === 'sites') {
+    const p = document.getElementById('sites-panel');
+    p.classList.add('active');
+    p.style.display = 'flex';
+  } else if (tab === 'scripture') {
+    const p = document.getElementById('scripture-panel');
+    p.classList.add('active');
+    p.style.display = 'flex';
+  }
+}
+
+// Init display
+document.getElementById('map-container').style.display = 'block';
+
+function setFilter(f) {
+  currentFilter = f;
+  // Update chip styles
+  document.querySelectorAll('.filter-chip').forEach(c => {
+    c.style.background = '';
+    c.style.fontWeight = '';
+    c.style.borderWidth = '1px';
+  });
+  const active = document.getElementById('chip-' + f);
+  if (active) { active.style.fontWeight = 'bold'; active.style.borderWidth = '2px'; }
+
+  // Show/hide markers
+  document.querySelectorAll('.marker').forEach(m => {
+    const classes = m.classList;
+    if (f === 'all') {
+      m.style.display = '';
+    } else if (f === 'sites') {
+      m.style.display = classes.contains('site') ? '' : 'none';
+    } else {
+      // Filter by son key
+      if (classes.contains('nation')) {
+        m.style.display = classes.contains(f) ? '' : 'none';
+      } else {
+        m.style.display = 'none'; // hide sites when filtering by nation
+      }
+    }
+  });
+}
+
+function openModal(el) {
+  const id = el.getAttribute('data-id');
+  const data = NATIONS[id] || SITES[id];
+  if (!data) return;
+  document.getElementById('modal-title').textContent = data.name;
+  document.getElementById('modal-sub').textContent = data.sub || '';
+  document.getElementById('modal-verse').textContent = '📜 ' + (data.verse || '');
+  document.getElementById('modal-body').textContent = data.body || '';
+  document.getElementById('modal-title').style.color = data.color || '#E8D5B0';
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function showDetail(id) {
+  const data = NATIONS[id] || SITES[id];
+  if (!data) return;
+  document.getElementById('modal-title').textContent = data.name;
+  document.getElementById('modal-sub').textContent = data.sub || '';
+  document.getElementById('modal-verse').textContent = '📜 ' + (data.verse || '');
+  document.getElementById('modal-body').textContent = data.body || '';
+  document.getElementById('modal-title').style.color = data.color || '#E8D5B0';
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+
+// ── MAP PAN + PINCH ZOOM ──
+const svgEl = document.getElementById('map-svg');
+
+function applyTransform() {
+  const g = svgEl.querySelector('g');
+  const cx = 450, cy = 225;
+  g.setAttribute('transform',
+    `translate(${svgTransform.tx}, ${svgTransform.ty}) scale(${svgTransform.scale})`
+  );
+}
+
+function zoomIn() { svgTransform.scale = Math.min(svgTransform.scale * 1.4, 8); applyTransform(); }
+function zoomOut() { svgTransform.scale = Math.max(svgTransform.scale / 1.4, 0.5); applyTransform(); }
+function resetView() { svgTransform = { scale: 1, tx: 0, ty: 0 }; applyTransform(); }
+
+// Touch events
+svgEl.addEventListener('touchstart', (e) => {
+  if (e.touches.length === 1) {
+    isPanning = true;
+    lastTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  } else if (e.touches.length === 2) {
+    isPanning = false;
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    lastPinchDist = Math.sqrt(dx*dx + dy*dy);
+  }
+}, { passive: true });
+
+svgEl.addEventListener('touchmove', (e) => {
+  e.preventDefault();
+  if (e.touches.length === 1 && isPanning && lastTouch) {
+    const dx = e.touches[0].clientX - lastTouch.x;
+    const dy = e.touches[0].clientY - lastTouch.y;
+    svgTransform.tx += dx / svgTransform.scale;
+    svgTransform.ty += dy / svgTransform.scale;
+    lastTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    applyTransform();
+  } else if (e.touches.length === 2 && lastPinchDist) {
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    const ratio = dist / lastPinchDist;
+    svgTransform.scale = Math.max(0.5, Math.min(8, svgTransform.scale * ratio));
+    lastPinchDist = dist;
+    applyTransform();
+  }
+}, { passive: false });
+
+svgEl.addEventListener('touchend', () => {
+  isPanning = false;
+  lastTouch = null;
+  lastPinchDist = null;
+});
+
+// Mouse pan
+let mouseDown = false, lastMouse = null;
+svgEl.addEventListener('mousedown', (e) => {
+  if (e.target.tagName === 'g' || e.target.closest('g[data-id]')) return;
+  mouseDown = true;
+  lastMouse = { x: e.clientX, y: e.clientY };
+});
+window.addEventListener('mousemove', (e) => {
+  if (!mouseDown || !lastMouse) return;
+  const dx = e.clientX - lastMouse.x;
+  const dy = e.clientY - lastMouse.y;
+  svgTransform.tx += dx / svgTransform.scale;
+  svgTransform.ty += dy / svgTransform.scale;
+  lastMouse = { x: e.clientX, y: e.clientY };
+  applyTransform();
+});
+window.addEventListener('mouseup', () => { mouseDown = false; lastMouse = null; });
+svgEl.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const factor = e.deltaY < 0 ? 1.15 : 0.87;
+  svgTransform.scale = Math.max(0.5, Math.min(8, svgTransform.scale * factor));
+  applyTransform();
+}, { passive: false });
+</script>
+</body>
+</html>
